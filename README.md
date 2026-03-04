@@ -1,3 +1,5 @@
+VÀO FILE Database.sql ĐỂ LẤY MẪU DATABASE MỚI NHÉ
+
 -- Tạo Database
 CREATE DATABASE ShopifyCloneDB;
 GO

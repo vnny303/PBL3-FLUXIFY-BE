@@ -46,6 +46,7 @@ namespace ShopifyAPI.Controllers
         public async Task<ActionResult<Tenant>> GetTenantBySubdomain(string subdomain)
         {
             var tenant = await _context.Tenants
+                .Include(t => t.Owner)
                 .FirstOrDefaultAsync(t => t.Subdomain == subdomain);
 
             if (tenant == null)

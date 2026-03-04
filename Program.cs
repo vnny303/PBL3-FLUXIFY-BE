@@ -1,9 +1,15 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Scalar.AspNetCore;
 using ShopifyAPI.Data;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
 using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Controllers
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -12,35 +18,77 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     });
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+// OpenAPI + Scalar
+builder.Services.AddOpenApi();
 
-// SESSION CONFIGURATION
-builder.Services.AddDistributedMemoryCache();
-builder.Services.AddSession(options =>
+// Database
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+);
+
+// JWT Authentication
+JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+
+builder.Services.AddAuthentication(options =>
 {
-    options.IdleTimeout = TimeSpan.FromDays(7);
-    options.Cookie.Name = ".ShopifyClone.Session";
-    options.Cookie.HttpOnly = false; // ← THAY ĐỔI: false để debug
-    options.Cookie.IsEssential = true;
-    options.Cookie.SameSite = SameSiteMode.Lax; // ← LAX
+    options.DefaultAuthenticateScheme =
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnChallenge = async context =>
+        {
+            context.HandleResponse();
+
+            context.Response.StatusCode = 401;
+            context.Response.ContentType = "application/json";
+
+            await context.Response.WriteAsync(
+                JsonSerializer.Serialize(new
+                {
+                    // status = 401,
+                    message = "Token không hợp lệ"
+                }));
+        }
+    };
 });
 
 // CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll",
-        policy => policy
-            .SetIsOriginAllowed(origin => true) // ← CHO PHÉP MỌI ORIGIN
-            .AllowAnyHeader() // chấp nhận mọi loại header
-            .AllowAnyMethod() // chấp nhận mọi phương thức HTTP (GET, POST, PUT, DELETE, v.v.)
-            .AllowCredentials());
+    options.AddPolicy("AllowAll", policy => policy
+        .SetIsOriginAllowed(_ => true)
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials());
 });
 
 var app = builder.Build();
 
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference(options => options
+        .WithTitle("ShopifyClone API")
+        .WithDefaultHttpClient(ScalarTarget.JavaScript, ScalarClient.Fetch)
+        .WithHttpBearerAuthentication(bearer => bearer.Token = ""));
+}
+
 app.UseCors("AllowAll");
-app.UseSession();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
