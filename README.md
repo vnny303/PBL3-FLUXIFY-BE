@@ -1,4 +1,7 @@
 VÀO FILE Database.sql ĐỂ LẤY MẪU DATABASE MỚI NHÉ
+❗Kiểm tra tài khoản platform user và customer:
+    - Platform user: email và password → nhập email đang sử dụng
+    - Customer: email và password → nhập email đang sử dụng, subdomain: pbl3-shop
 
 -- Tạo Database
 CREATE DATABASE ShopifyCloneDB;
