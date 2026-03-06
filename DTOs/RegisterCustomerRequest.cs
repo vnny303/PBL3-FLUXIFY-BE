@@ -1,4 +1,4 @@
-﻿namespace ShopifyAPI.DTOs
+﻿namespace FluxifyAPI.DTOs
 {
     public class RegisterCustomerRequest
     {

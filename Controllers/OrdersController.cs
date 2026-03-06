@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ShopifyAPI.Data;
-using ShopifyAPI.Models;
+using FluxifyAPI.Data;
+using FluxifyAPI.Models;
 
-namespace ShopifyAPI.Controllers
+namespace FluxifyAPI.Controllers
 {
     [Route("api/tenants/{tenantId}/[controller]")]
     [ApiController]
@@ -23,7 +23,8 @@ namespace ShopifyAPI.Controllers
             return await _context.Orders
                 .Where(o => o.TenantId == tenantId)
                 .Include(o => o.OrderItems)
-                    .ThenInclude(oi => oi.Product)
+                    .ThenInclude(oi => oi.ProductSku)
+                        .ThenInclude(s => s.Product)
                 .OrderByDescending(o => o.CreatedAt)
                 .ToListAsync();
         }
@@ -35,7 +36,8 @@ namespace ShopifyAPI.Controllers
             var order = await _context.Orders
                 .Where(o => o.TenantId == tenantId && o.Id == id)
                 .Include(o => o.OrderItems)
-                    .ThenInclude(oi => oi.Product)
+                    .ThenInclude(oi => oi.ProductSku)
+                        .ThenInclude(s => s.Product)
                 .Include(o => o.Customer)
                 .FirstOrDefaultAsync();
 

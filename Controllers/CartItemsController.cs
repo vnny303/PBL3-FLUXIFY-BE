@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ShopifyAPI.Data;
-using ShopifyAPI.Models;
+using FluxifyAPI.Data;
+using FluxifyAPI.Models;
 using System.Text.Json;
 
-namespace ShopifyAPI.Controllers
+namespace FluxifyAPI.Controllers
 {
     [Route("api/tenants/{tenantId}/customers/{customerId}/[controller]")]
     [ApiController]
@@ -21,7 +21,6 @@ namespace ShopifyAPI.Controllers
         [HttpGet]
         public async Task<ActionResult> GetCartItems(Guid tenantId, Guid customerId)
         {
-            // Xác nhận customer thuộc tenant
             var customer = await _context.Customers
                 .FirstOrDefaultAsync(c => c.Id == customerId && c.TenantId == tenantId);
 
@@ -29,28 +28,20 @@ namespace ShopifyAPI.Controllers
                 return NotFound(new { message = "Không tìm thấy khách hàng!" });
 
             var items = await _context.CartItems
-                .Where(ci => ci.CustomerId == customerId)
-                .Include(ci => ci.Product)
-                    .ThenInclude(p => p.ProductSkus)
+                .Where(ci => ci.Cart.CustomerId == customerId)
+                .Include(ci => ci.ProductSku)
+                    .ThenInclude(s => s.Product)
                 .ToListAsync();
 
-            var result = items.Select(ci =>
+            var result = items.Select(ci => new
             {
-                // Lay gia thap nhat trong cac SKU
-                var minPrice = ci.Product.ProductSkus
-                    .OrderBy(s => s.Price)
-                    .Select(s => (decimal?)s.Price)
-                    .FirstOrDefault() ?? 0m;
-                return new
-                {
-                    id = ci.Id,
-                    productId = ci.ProductId,
-                    productName = ci.Product.Name,
-                    productPrice = minPrice,
-                    quantity = ci.Quantity,
-                    selectedOptions = ci.SelectedOptions,
-                    subTotal = minPrice * ci.Quantity
-                };
+                id = ci.Id,
+                productSkuId = ci.ProductSkuId,
+                productId = ci.ProductSku.ProductId,
+                productName = ci.ProductSku.Product.Name,
+                productPrice = ci.ProductSku.Price,
+                quantity = ci.Quantity,
+                subTotal = ci.ProductSku.Price * ci.Quantity
             });
 
             return Ok(result);
@@ -73,9 +64,9 @@ namespace ShopifyAPI.Controllers
                     return NotFound(new { message = "Không tìm thấy khách hàng!" });
 
                 // Parse JSON
-                if (!data.TryGetProperty("productId", out var productIdProp) ||
-                    !Guid.TryParse(productIdProp.GetString(), out Guid productId))
-                    return BadRequest(new { message = "productId không hợp lệ!" });
+                if (!data.TryGetProperty("productSkuId", out var skuIdProp) ||
+                    !Guid.TryParse(skuIdProp.GetString(), out Guid productSkuId))
+                    return BadRequest(new { message = "productSkuId không hợp lệ!" });
 
                 int quantity = 1;
                 if (data.TryGetProperty("quantity", out var qtyProp) && qtyProp.ValueKind == JsonValueKind.Number)
@@ -84,28 +75,32 @@ namespace ShopifyAPI.Controllers
                 if (quantity <= 0)
                     return BadRequest(new { message = "Số lượng phải lớn hơn 0!" });
 
-                string? selectedOptions = data.TryGetProperty("selectedOptions", out var optProp)
-                    ? optProp.GetString()
-                    : null;
+                // Xác nhận SKU thuộc tenant và còn hàng
+                var sku = await _context.ProductSkus
+                    .Include(s => s.Product)
+                    .FirstOrDefaultAsync(s => s.Id == productSkuId && s.Product.TenantId == tenantId && s.Product.IsActive == true);
 
-                // Xac nhan san pham thuoc tenant va con hang
-                var product = await _context.Products
-                    .Include(p => p.ProductSkus)
-                    .FirstOrDefaultAsync(p => p.Id == productId && p.TenantId == tenantId && p.IsActive == true);
+                if (sku == null)
+                    return NotFound(new { message = "Không tìm thấy SKU sản phẩm!" });
 
-                if (product == null)
-                    return NotFound(new { message = "Khong tim thay san pham!" });
+                if (sku.Stock < quantity)
+                    return BadRequest(new { message = $"SKU chỉ còn {sku.Stock} trong kho!" });
 
-                // Tong stock cua tat ca SKUs
-                int totalStock = product.ProductSkus.Sum(s => s.Stock);
-                if (totalStock < quantity)
-                    return BadRequest(new { message = $"San pham chi con {totalStock} trong kho!" });
+                // Tìm hoặc tạo Cart cho customer
+                var cart = await _context.Carts
+                    .FirstOrDefaultAsync(c => c.CustomerId == customerId);
 
-                // Kiểm tra nếu đã có item này trong giỏ (cùng product + selectedOptions)
+                if (cart == null)
+                {
+                    cart = new Cart { Id = Guid.NewGuid(), CustomerId = customerId };
+                    _context.Carts.Add(cart);
+                    await _context.SaveChangesAsync();
+                }
+
+                // Kiểm tra nếu đã có item này trong giỏ (cùng SKU + selectedOptions)
                 var existing = await _context.CartItems
-                    .FirstOrDefaultAsync(ci => ci.CustomerId == customerId
-                                            && ci.ProductId == productId
-                                            && ci.SelectedOptions == selectedOptions);
+                    .FirstOrDefaultAsync(ci => ci.CartId == cart.Id
+                                            && ci.ProductSkuId == productSkuId);
 
                 if (existing != null)
                 {
@@ -115,9 +110,8 @@ namespace ShopifyAPI.Controllers
                     return Ok(new
                     {
                         id = existing.Id,
-                        productId = existing.ProductId,
+                        productSkuId = existing.ProductSkuId,
                         quantity = existing.Quantity,
-                        selectedOptions = existing.SelectedOptions,
                         message = "Đã cập nhật số lượng trong giỏ hàng!"
                     });
                 }
@@ -126,10 +120,9 @@ namespace ShopifyAPI.Controllers
                 var cartItem = new CartItem
                 {
                     Id = Guid.NewGuid(),
-                    CustomerId = customerId,
-                    ProductId = productId,
-                    Quantity = quantity,
-                    SelectedOptions = selectedOptions
+                    CartId = cart.Id,
+                    ProductSkuId = productSkuId,
+                    Quantity = quantity
                 };
 
                 _context.CartItems.Add(cartItem);
@@ -140,9 +133,8 @@ namespace ShopifyAPI.Controllers
                 return Ok(new
                 {
                     id = cartItem.Id,
-                    productId = cartItem.ProductId,
+                    productSkuId = cartItem.ProductSkuId,
                     quantity = cartItem.Quantity,
-                    selectedOptions = cartItem.SelectedOptions,
                     message = "Đã thêm vào giỏ hàng!"
                 });
             }
@@ -171,7 +163,7 @@ namespace ShopifyAPI.Controllers
                     return NotFound(new { message = "Không tìm thấy khách hàng!" });
 
                 var cartItem = await _context.CartItems
-                    .FirstOrDefaultAsync(ci => ci.Id == id && ci.CustomerId == customerId);
+                    .FirstOrDefaultAsync(ci => ci.Id == id && ci.Cart.CustomerId == customerId);
 
                 if (cartItem == null)
                     return NotFound(new { message = "Không tìm thấy sản phẩm trong giỏ hàng!" });
@@ -183,16 +175,11 @@ namespace ShopifyAPI.Controllers
                 if (newQuantity <= 0)
                     return BadRequest(new { message = "Số lượng phải lớn hơn 0!" });
 
-                // Kiem tra ton kho qua SKUs
-                var product = await _context.Products
-                    .Include(p => p.ProductSkus)
-                    .FirstOrDefaultAsync(p => p.Id == cartItem.ProductId);
-                if (product != null)
-                {
-                    int totalStock = product.ProductSkus.Sum(s => s.Stock);
-                    if (totalStock < newQuantity)
-                        return BadRequest(new { message = $"San pham chi con {totalStock} trong kho!" });
-                }
+                // Kiem tra ton kho qua SKU
+                var sku = await _context.ProductSkus
+                    .FirstOrDefaultAsync(s => s.Id == cartItem.ProductSkuId);
+                if (sku != null && sku.Stock < newQuantity)
+                    return BadRequest(new { message = $"SKU chỉ còn {sku.Stock} trong kho!" });
 
                 cartItem.Quantity = newQuantity;
                 await _context.SaveChangesAsync();
@@ -200,9 +187,8 @@ namespace ShopifyAPI.Controllers
                 return Ok(new
                 {
                     id = cartItem.Id,
-                    productId = cartItem.ProductId,
+                    productSkuId = cartItem.ProductSkuId,
                     quantity = cartItem.Quantity,
-                    selectedOptions = cartItem.SelectedOptions,
                     message = "Đã cập nhật giỏ hàng!"
                 });
             }
@@ -228,7 +214,7 @@ namespace ShopifyAPI.Controllers
                 return NotFound(new { message = "Không tìm thấy khách hàng!" });
 
             var cartItem = await _context.CartItems
-                .FirstOrDefaultAsync(ci => ci.Id == id && ci.CustomerId == customerId);
+                .FirstOrDefaultAsync(ci => ci.Id == id && ci.Cart.CustomerId == customerId);
 
             if (cartItem == null)
                 return NotFound(new { message = "Không tìm thấy sản phẩm trong giỏ hàng!" });
@@ -250,7 +236,7 @@ namespace ShopifyAPI.Controllers
                 return NotFound(new { message = "Không tìm thấy khách hàng!" });
 
             var items = await _context.CartItems
-                .Where(ci => ci.CustomerId == customerId)
+                .Where(ci => ci.Cart.CustomerId == customerId)
                 .ToListAsync();
 
             _context.CartItems.RemoveRange(items);

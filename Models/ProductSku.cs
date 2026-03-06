@@ -1,6 +1,6 @@
 using System;
 
-namespace ShopifyAPI.Models;
+namespace FluxifyAPI.Models;
 
 public partial class ProductSku
 {
@@ -16,5 +16,9 @@ public partial class ProductSku
     // Ví dụ: {"color": "Đỏ", "size": "M"}
     public string? Attributes { get; set; }
 
-    public virtual Product Product { get; set; } = null!;
+    public Product Product { get; set; } = null!;
+
+    public List<CartItem> CartItems { get; set; } = new List<CartItem>();
+
+    public List<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 }

@@ -2,7 +2,7 @@
 
 // using Microsoft.AspNetCore.Mvc;
 
-// namespace ShopifyAPI.Controllers
+// namespace FluxifyAPI.Controllers
 // {
 //     [Route("api/[controller]")]
 //     [ApiController]

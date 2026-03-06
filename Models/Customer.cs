@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
-namespace ShopifyAPI.Models;
+namespace FluxifyAPI.Models;
 
 public partial class Customer
 {
@@ -17,9 +17,9 @@ public partial class Customer
 
     public DateTime? CreatedAt { get; set; }
 
-    public virtual ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
+    public Cart? Cart { get; set; }
 
-    public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+    public List<Order> Orders { get; set; } = new List<Order>();
 
-    public virtual Tenant Tenant { get; set; } = null!;
+    public Tenant Tenant { get; set; } = null!;
 }

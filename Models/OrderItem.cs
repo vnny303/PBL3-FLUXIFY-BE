@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace ShopifyAPI.Models;
+namespace FluxifyAPI.Models;
 
 public partial class OrderItem
 {
@@ -9,7 +9,7 @@ public partial class OrderItem
 
     public Guid OrderId { get; set; }
 
-    public Guid ProductId { get; set; }
+    public Guid ProductSkuId { get; set; }
 
     public string? SelectedOptions { get; set; }
 
@@ -17,7 +17,7 @@ public partial class OrderItem
 
     public decimal UnitPrice { get; set; }
 
-    public virtual Order Order { get; set; } = null!;
+    public Order Order { get; set; } = null!;
 
-    public virtual Product Product { get; set; } = null!;
+    public ProductSku ProductSku { get; set; } = null!;
 }

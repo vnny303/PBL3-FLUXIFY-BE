@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ShopifyAPI.Data;
-using ShopifyAPI.Models;
+using FluxifyAPI.Data;
+using FluxifyAPI.Models;
 
-namespace ShopifyAPI.Controllers
+namespace FluxifyAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
-using ShopifyAPI.Models;
+using FluxifyAPI.Models;
 
-namespace ShopifyAPI.Data;
+namespace FluxifyAPI.Data;
 
 public partial class AppDbContext : DbContext
 {
@@ -15,6 +15,8 @@ public partial class AppDbContext : DbContext
         : base(options)
     {
     }
+
+    public virtual DbSet<Cart> Carts { get; set; }
 
     public virtual DbSet<CartItem> CartItems { get; set; }
 
@@ -38,6 +40,23 @@ public partial class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Cart>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__carts__3213E83F");
+
+            entity.ToTable("carts");
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("(newid())")
+                .HasColumnName("id");
+            entity.Property(e => e.CustomerId).HasColumnName("customer_id");
+
+            entity.HasOne(d => d.Customer).WithOne(p => p.Cart)
+                .HasForeignKey<Cart>(d => d.CustomerId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__carts__customer_id");
+        });
+
         modelBuilder.Entity<CartItem>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__cart_ite__3213E83FF5F280A7");
@@ -47,18 +66,17 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Id)
                 .HasDefaultValueSql("(newid())")
                 .HasColumnName("id");
-            entity.Property(e => e.CustomerId).HasColumnName("customer_id");
-            entity.Property(e => e.ProductId).HasColumnName("product_id");
+            entity.Property(e => e.CartId).HasColumnName("cart_id");
+            entity.Property(e => e.ProductSkuId).HasColumnName("product_sku_id");
             entity.Property(e => e.Quantity).HasColumnName("quantity");
-            entity.Property(e => e.SelectedOptions).HasColumnName("selected_options");
 
-            entity.HasOne(d => d.Customer).WithMany(p => p.CartItems)
-                .HasForeignKey(d => d.CustomerId)
+            entity.HasOne(d => d.Cart).WithMany(p => p.CartItems)
+                .HasForeignKey(d => d.CartId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__cart_item__custo__7A672E12");
 
-            entity.HasOne(d => d.Product).WithMany(p => p.CartItems)
-                .HasForeignKey(d => d.ProductId)
+            entity.HasOne(d => d.ProductSku).WithMany(p => p.CartItems)
+                .HasForeignKey(d => d.ProductSkuId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__cart_item__produ__7B5B524B");
         });
@@ -171,7 +189,7 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValueSql("(newid())")
                 .HasColumnName("id");
             entity.Property(e => e.OrderId).HasColumnName("order_id");
-            entity.Property(e => e.ProductId).HasColumnName("product_id");
+            entity.Property(e => e.ProductSkuId).HasColumnName("product_sku_id");
             entity.Property(e => e.Quantity).HasColumnName("quantity");
             entity.Property(e => e.SelectedOptions).HasColumnName("selected_options");
             entity.Property(e => e.UnitPrice)
@@ -183,8 +201,8 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__order_ite__order__75A278F5");
 
-            entity.HasOne(d => d.Product).WithMany(p => p.OrderItems)
-                .HasForeignKey(d => d.ProductId)
+            entity.HasOne(d => d.ProductSku).WithMany(p => p.OrderItems)
+                .HasForeignKey(d => d.ProductSkuId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__order_ite__produ__76969D2E");
         });

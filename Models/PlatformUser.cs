@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace ShopifyAPI.Models;
+namespace FluxifyAPI.Models;
 
 public partial class PlatformUser
 {
@@ -21,5 +21,5 @@ public partial class PlatformUser
 
     public DateTime? CreatedAt { get; set; }
 
-    public virtual ICollection<Tenant> Tenants { get; set; } = new List<Tenant>();
+    public List<Tenant> Tenants { get; set; } = new List<Tenant>();
 }
