@@ -1,0 +1,20 @@
+## Build
+bin/
+obj/
+
+## VS
+.vs/
+*.user
+*.suo
+*.csproj.user
+
+## Local config
+appsettings.Development.json
+
+## Logs
+*.log
+logs/
+
+## OS
+.DS_Store
+Thumbs.db
