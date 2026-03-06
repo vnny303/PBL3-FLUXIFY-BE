@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace ShopifyAPI.Models;
+namespace FluxifyAPI.Models;
 
 [Table("categories")]
 public partial class Category
@@ -25,8 +25,8 @@ public partial class Category
 
     // Navigation properties - Thêm attribute để tránh lỗi serialization
     [System.Text.Json.Serialization.JsonIgnore]
-    public virtual ICollection<Product> Products { get; set; } = new List<Product>();
+    public List<Product> Products { get; set; } = new List<Product>();
 
     [System.Text.Json.Serialization.JsonIgnore]
-    public virtual Tenant Tenant { get; set; } = null!;
+    public Tenant Tenant { get; set; } = null!;
 }

@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
-using ShopifyAPI.Data;
+using FluxifyAPI.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using System.Text.Json;

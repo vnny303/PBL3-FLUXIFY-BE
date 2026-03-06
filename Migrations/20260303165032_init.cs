@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace ShopifyAPI.Migrations
+namespace FluxifyAPI.Migrations
 {
     /// <inheritdoc />
     public partial class init : Migration

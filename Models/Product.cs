@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace ShopifyAPI.Models;
+namespace FluxifyAPI.Models;
 
 public partial class Product
 {
@@ -21,13 +21,13 @@ public partial class Product
     // Ví dụ: {"color": ["Đỏ","Xanh","Trắng"], "size": ["S","M","L","XL"]}
     public string? Attributes { get; set; }
 
-    public virtual ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
+    public List<CartItem> CartItems { get; set; } = new List<CartItem>();
 
-    public virtual Category? Category { get; set; }
+    public Category? Category { get; set; }
 
-    public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+    public List<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 
-    public virtual Tenant Tenant { get; set; } = null!;
+    public Tenant Tenant { get; set; } = null!;
 
-    public virtual ICollection<ProductSku> ProductSkus { get; set; } = new List<ProductSku>();
+    public List<ProductSku> ProductSkus { get; set; } = new List<ProductSku>();
 }

@@ -2,14 +2,14 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using ShopifyAPI.Data;
-using ShopifyAPI.DTOs;
-using ShopifyAPI.Models;
+using FluxifyAPI.Data;
+using FluxifyAPI.DTOs;
+using FluxifyAPI.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace ShopifyAPI.Controllers
+namespace FluxifyAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]

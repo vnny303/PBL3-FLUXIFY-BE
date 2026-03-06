@@ -10,14 +10,14 @@
         "projectUniqueName": "D:\\DUT\\KY2NAM2\\PBL3\\Official\\PBL3-FLUXIFY-BE\\ShopifyAPI.csproj",
         "projectName": "ShopifyAPI",
         "projectPath": "D:\\DUT\\KY2NAM2\\PBL3\\Official\\PBL3-FLUXIFY-BE\\ShopifyAPI.csproj",
-        "packagesPath": "C:\\Users\\hp\\.nuget\\packages\\",
+        "packagesPath": "C:\\Users\\PC\\.nuget\\packages\\",
         "outputPath": "D:\\DUT\\KY2NAM2\\PBL3\\Official\\PBL3-FLUXIFY-BE\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\hp\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\PC\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],

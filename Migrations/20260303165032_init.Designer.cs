@@ -5,11 +5,11 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using ShopifyAPI.Data;
+using FluxifyAPI.Data;
 
 #nullable disable
 
-namespace ShopifyAPI.Migrations
+namespace FluxifyAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
     [Migration("20260303165032_init")]
@@ -25,7 +25,7 @@ namespace ShopifyAPI.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("ShopifyAPI.Models.CartItem", b =>
+            modelBuilder.Entity("FluxifyAPI.Models.CartItem", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -59,7 +59,7 @@ namespace ShopifyAPI.Migrations
                     b.ToTable("cart_items", (string)null);
                 });
 
-            modelBuilder.Entity("ShopifyAPI.Models.Category", b =>
+            modelBuilder.Entity("FluxifyAPI.Models.Category", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -95,7 +95,7 @@ namespace ShopifyAPI.Migrations
                     b.ToTable("categories", (string)null);
                 });
 
-            modelBuilder.Entity("ShopifyAPI.Models.Customer", b =>
+            modelBuilder.Entity("FluxifyAPI.Models.Customer", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -140,7 +140,7 @@ namespace ShopifyAPI.Migrations
                     b.ToTable("customers", (string)null);
                 });
 
-            modelBuilder.Entity("ShopifyAPI.Models.Order", b =>
+            modelBuilder.Entity("FluxifyAPI.Models.Order", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -201,7 +201,7 @@ namespace ShopifyAPI.Migrations
                     b.ToTable("orders", (string)null);
                 });
 
-            modelBuilder.Entity("ShopifyAPI.Models.OrderItem", b =>
+            modelBuilder.Entity("FluxifyAPI.Models.OrderItem", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -239,7 +239,7 @@ namespace ShopifyAPI.Migrations
                     b.ToTable("order_items", (string)null);
                 });
 
-            modelBuilder.Entity("ShopifyAPI.Models.PlatformUser", b =>
+            modelBuilder.Entity("FluxifyAPI.Models.PlatformUser", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -298,7 +298,7 @@ namespace ShopifyAPI.Migrations
                     b.ToTable("platform_users", (string)null);
                 });
 
-            modelBuilder.Entity("ShopifyAPI.Models.Product", b =>
+            modelBuilder.Entity("FluxifyAPI.Models.Product", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -344,7 +344,7 @@ namespace ShopifyAPI.Migrations
                     b.ToTable("products", (string)null);
                 });
 
-            modelBuilder.Entity("ShopifyAPI.Models.ProductSku", b =>
+            modelBuilder.Entity("FluxifyAPI.Models.ProductSku", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -378,7 +378,7 @@ namespace ShopifyAPI.Migrations
                     b.ToTable("product_sku", (string)null);
                 });
 
-            modelBuilder.Entity("ShopifyAPI.Models.Tenant", b =>
+            modelBuilder.Entity("FluxifyAPI.Models.Tenant", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -419,15 +419,15 @@ namespace ShopifyAPI.Migrations
                     b.ToTable("tenants", (string)null);
                 });
 
-            modelBuilder.Entity("ShopifyAPI.Models.CartItem", b =>
+            modelBuilder.Entity("FluxifyAPI.Models.CartItem", b =>
                 {
-                    b.HasOne("ShopifyAPI.Models.Customer", "Customer")
+                    b.HasOne("FluxifyAPI.Models.Customer", "Customer")
                         .WithMany("CartItems")
                         .HasForeignKey("CustomerId")
                         .IsRequired()
                         .HasConstraintName("FK__cart_item__custo__7A672E12");
 
-                    b.HasOne("ShopifyAPI.Models.Product", "Product")
+                    b.HasOne("FluxifyAPI.Models.Product", "Product")
                         .WithMany("CartItems")
                         .HasForeignKey("ProductId")
                         .IsRequired()
@@ -438,9 +438,9 @@ namespace ShopifyAPI.Migrations
                     b.Navigation("Product");
                 });
 
-            modelBuilder.Entity("ShopifyAPI.Models.Category", b =>
+            modelBuilder.Entity("FluxifyAPI.Models.Category", b =>
                 {
-                    b.HasOne("ShopifyAPI.Models.Tenant", "Tenant")
+                    b.HasOne("FluxifyAPI.Models.Tenant", "Tenant")
                         .WithMany("Categories")
                         .HasForeignKey("TenantId")
                         .IsRequired()
@@ -449,9 +449,9 @@ namespace ShopifyAPI.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("ShopifyAPI.Models.Customer", b =>
+            modelBuilder.Entity("FluxifyAPI.Models.Customer", b =>
                 {
-                    b.HasOne("ShopifyAPI.Models.Tenant", "Tenant")
+                    b.HasOne("FluxifyAPI.Models.Tenant", "Tenant")
                         .WithMany("Customers")
                         .HasForeignKey("TenantId")
                         .IsRequired()
@@ -460,14 +460,14 @@ namespace ShopifyAPI.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("ShopifyAPI.Models.Order", b =>
+            modelBuilder.Entity("FluxifyAPI.Models.Order", b =>
                 {
-                    b.HasOne("ShopifyAPI.Models.Customer", "Customer")
+                    b.HasOne("FluxifyAPI.Models.Customer", "Customer")
                         .WithMany("Orders")
                         .HasForeignKey("CustomerId")
                         .HasConstraintName("FK__orders__customer__71D1E811");
 
-                    b.HasOne("ShopifyAPI.Models.Tenant", "Tenant")
+                    b.HasOne("FluxifyAPI.Models.Tenant", "Tenant")
                         .WithMany("Orders")
                         .HasForeignKey("TenantId")
                         .IsRequired()
@@ -478,15 +478,15 @@ namespace ShopifyAPI.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("ShopifyAPI.Models.OrderItem", b =>
+            modelBuilder.Entity("FluxifyAPI.Models.OrderItem", b =>
                 {
-                    b.HasOne("ShopifyAPI.Models.Order", "Order")
+                    b.HasOne("FluxifyAPI.Models.Order", "Order")
                         .WithMany("OrderItems")
                         .HasForeignKey("OrderId")
                         .IsRequired()
                         .HasConstraintName("FK__order_ite__order__75A278F5");
 
-                    b.HasOne("ShopifyAPI.Models.Product", "Product")
+                    b.HasOne("FluxifyAPI.Models.Product", "Product")
                         .WithMany("OrderItems")
                         .HasForeignKey("ProductId")
                         .IsRequired()
@@ -497,14 +497,14 @@ namespace ShopifyAPI.Migrations
                     b.Navigation("Product");
                 });
 
-            modelBuilder.Entity("ShopifyAPI.Models.Product", b =>
+            modelBuilder.Entity("FluxifyAPI.Models.Product", b =>
                 {
-                    b.HasOne("ShopifyAPI.Models.Category", "Category")
+                    b.HasOne("FluxifyAPI.Models.Category", "Category")
                         .WithMany("Products")
                         .HasForeignKey("CategoryId")
                         .HasConstraintName("FK__products__catego__656C112C");
 
-                    b.HasOne("ShopifyAPI.Models.Tenant", "Tenant")
+                    b.HasOne("FluxifyAPI.Models.Tenant", "Tenant")
                         .WithMany("Products")
                         .HasForeignKey("TenantId")
                         .IsRequired()
@@ -515,9 +515,9 @@ namespace ShopifyAPI.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("ShopifyAPI.Models.ProductSku", b =>
+            modelBuilder.Entity("FluxifyAPI.Models.ProductSku", b =>
                 {
-                    b.HasOne("ShopifyAPI.Models.Product", "Product")
+                    b.HasOne("FluxifyAPI.Models.Product", "Product")
                         .WithMany("ProductSkus")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -527,9 +527,9 @@ namespace ShopifyAPI.Migrations
                     b.Navigation("Product");
                 });
 
-            modelBuilder.Entity("ShopifyAPI.Models.Tenant", b =>
+            modelBuilder.Entity("FluxifyAPI.Models.Tenant", b =>
                 {
-                    b.HasOne("ShopifyAPI.Models.PlatformUser", "Owner")
+                    b.HasOne("FluxifyAPI.Models.PlatformUser", "Owner")
                         .WithMany("Tenants")
                         .HasForeignKey("OwnerId")
                         .IsRequired()
@@ -538,29 +538,29 @@ namespace ShopifyAPI.Migrations
                     b.Navigation("Owner");
                 });
 
-            modelBuilder.Entity("ShopifyAPI.Models.Category", b =>
+            modelBuilder.Entity("FluxifyAPI.Models.Category", b =>
                 {
                     b.Navigation("Products");
                 });
 
-            modelBuilder.Entity("ShopifyAPI.Models.Customer", b =>
+            modelBuilder.Entity("FluxifyAPI.Models.Customer", b =>
                 {
                     b.Navigation("CartItems");
 
                     b.Navigation("Orders");
                 });
 
-            modelBuilder.Entity("ShopifyAPI.Models.Order", b =>
+            modelBuilder.Entity("FluxifyAPI.Models.Order", b =>
                 {
                     b.Navigation("OrderItems");
                 });
 
-            modelBuilder.Entity("ShopifyAPI.Models.PlatformUser", b =>
+            modelBuilder.Entity("FluxifyAPI.Models.PlatformUser", b =>
                 {
                     b.Navigation("Tenants");
                 });
 
-            modelBuilder.Entity("ShopifyAPI.Models.Product", b =>
+            modelBuilder.Entity("FluxifyAPI.Models.Product", b =>
                 {
                     b.Navigation("CartItems");
 
@@ -569,7 +569,7 @@ namespace ShopifyAPI.Migrations
                     b.Navigation("ProductSkus");
                 });
 
-            modelBuilder.Entity("ShopifyAPI.Models.Tenant", b =>
+            modelBuilder.Entity("FluxifyAPI.Models.Tenant", b =>
                 {
                     b.Navigation("Categories");
 

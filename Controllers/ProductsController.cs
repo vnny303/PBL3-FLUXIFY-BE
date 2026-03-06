@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ShopifyAPI.Data;
-using ShopifyAPI.Models;
+using FluxifyAPI.Data;
+using FluxifyAPI.Models;
 using System.Text.Json;
 
-namespace ShopifyAPI.Controllers
+namespace FluxifyAPI.Controllers
 {
     [Route("api/tenants/{tenantId}/[controller]")]
     [ApiController]

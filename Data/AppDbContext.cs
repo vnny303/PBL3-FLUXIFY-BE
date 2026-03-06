@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
-using ShopifyAPI.Models;
+using FluxifyAPI.Models;
 
-namespace ShopifyAPI.Data;
+namespace FluxifyAPI.Data;
 
 public partial class AppDbContext : DbContext
 {
@@ -50,7 +50,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CustomerId).HasColumnName("customer_id");
             entity.Property(e => e.ProductId).HasColumnName("product_id");
             entity.Property(e => e.Quantity).HasColumnName("quantity");
-            entity.Property(e => e.SelectedOptions).HasColumnName("selected_options");
+            entity.Property(e => e.ProductId).HasColumnName("product_sku_id");
 
             entity.HasOne(d => d.Customer).WithMany(p => p.CartItems)
                 .HasForeignKey(d => d.CustomerId)
