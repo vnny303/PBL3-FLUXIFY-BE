@@ -1,29 +1,31 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
-namespace FluxifyAPI.Models;
-
-public partial class Product
+namespace FluxifyAPI.Models
 {
-    public Guid Id { get; set; }
-
-    public Guid TenantId { get; set; }
-
-    public Guid? CategoryId { get; set; }
-
-    public string Name { get; set; } = null!;
-
-    public string? Description { get; set; }
-
-    public bool? IsActive { get; set; }
-
-    // Định nghĩa các nhóm thuộc tính của sản phẩm dạng JSON
-    // Ví dụ: {"color": ["Đỏ","Xanh","Trắng"], "size": ["S","M","L","XL"]}
-    public string? Attributes { get; set; }
-
-    public Category? Category { get; set; }
-
-    public Tenant Tenant { get; set; } = null!;
-
-    public List<ProductSku> ProductSkus { get; set; } = new List<ProductSku>();
+    [Table("products")]
+    public class Product
+    {
+        [Column("id")]
+        public Guid Id { get; set; }
+        [Column("tenant_id")]
+        public Guid TenantId { get; set; }
+        [Column("category_id")]
+        public Guid CategoryId { get; set; }
+        [Column("name")]
+        public string Name { get; set; } = null!;
+        [Column("description")]
+        public string? Description { get; set; }
+        [Column("attributes")]
+        // Định nghĩa các nhóm thuộc tính của sản phẩm dạng JSON
+        // Ví dụ: {"color": ["Đỏ","Xanh","Trắng"], "size": ["S","M","L","XL"]}
+        public string? Attributes { get; set; }
+        [JsonIgnore]
+        public Category Category { get; set; } = null!;
+        [JsonIgnore]
+        public Tenant Tenant { get; set; } = null!;
+        public List<ProductSku> ProductSkus { get; set; } = new List<ProductSku>();
+    }
 }

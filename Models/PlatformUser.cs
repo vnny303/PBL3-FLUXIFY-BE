@@ -1,25 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
-
-namespace FluxifyAPI.Models;
-
-public partial class PlatformUser
+using System.ComponentModel.DataAnnotations.Schema;
+namespace FluxifyAPI.Models
 {
-    public Guid Id { get; set; }
-
-    public string Fullname { get; set; } = null!;
-
-    public string Email { get; set; } = null!;
-
-    public string PasswordHash { get; set; } = null!;
-
-    public string? Phone { get; set; }
-
-    public string? Role { get; set; }
-
-    public bool? IsActive { get; set; }
-
-    public DateTime? CreatedAt { get; set; }
-
-    public List<Tenant> Tenants { get; set; } = new List<Tenant>();
+    [Table("platform_users")]
+    public class PlatformUser
+    {
+        [Column("id")]
+        public Guid Id { get; set; }
+        [Column("fullname")]
+        public string Fullname { get; set; } = null!;
+        [Column("email")]
+        public string Email { get; set; } = null!;
+        [Column("password_hash")]
+        public string PasswordHash { get; set; } = null!;
+        [Column("phone")]
+        public string? Phone { get; set; }
+        [Column("role")]
+        public string? Role { get; set; }
+        [Column("is_active")]
+        public bool? IsActive { get; set; }
+        [Column("created_at")]
+        public DateTime? CreatedAt { get; set; }
+        public List<Tenant> Tenants { get; set; } = new List<Tenant>();
+    }
 }

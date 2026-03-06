@@ -78,7 +78,7 @@ namespace FluxifyAPI.Controllers
                 // Xác nhận SKU thuộc tenant và còn hàng
                 var sku = await _context.ProductSkus
                     .Include(s => s.Product)
-                    .FirstOrDefaultAsync(s => s.Id == productSkuId && s.Product.TenantId == tenantId && s.Product.IsActive == true);
+                    .FirstOrDefaultAsync(s => s.Id == productSkuId && s.Product.TenantId == tenantId);
 
                 if (sku == null)
                     return NotFound(new { message = "Không tìm thấy SKU sản phẩm!" });

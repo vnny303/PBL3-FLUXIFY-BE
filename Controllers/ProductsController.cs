@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using FluxifyAPI.Data;
 using FluxifyAPI.Models;
+using FluxifyAPI.Mapper;
 using System.Text.Json;
 
 namespace FluxifyAPI.Controllers
@@ -95,39 +96,28 @@ namespace FluxifyAPI.Controllers
                 {
                     Id = Guid.NewGuid(),
                     TenantId = tenantId,
-                    CategoryId = categoryId,
+                    CategoryId = (Guid)categoryId,
                     Name = name.Trim(),
                     Description = description?.Trim(),
-                    IsActive = isActive,
                     Attributes = attributes
                 };
 
                 _context.Products.Add(product);
 
                 // Tao SKUs neu duoc gui kem
-                var skuResults = new List<object>();
                 if (data.TryGetProperty("skus", out var skusProp) && skusProp.ValueKind == JsonValueKind.Array)
                 {
                     foreach (var skuEl in skusProp.EnumerateArray())
                     {
                         var sku = ParseSkuElement(skuEl, product.Id);
                         _context.ProductSkus.Add(sku);
-                        skuResults.Add(MapSku(sku));
+                        product.ProductSkus.Add(sku);
                     }
                 }
 
                 await _context.SaveChangesAsync();
 
-                return Ok(new
-                {
-                    id = product.Id,
-                    name = product.Name,
-                    description = product.Description,
-                    categoryId = product.CategoryId,
-                    isActive = product.IsActive,
-                    attributes = product.Attributes,
-                    skus = skuResults
-                });
+                return Ok(product.ToProductDto());
             }
             catch (Exception ex)
             {
@@ -156,12 +146,11 @@ namespace FluxifyAPI.Controllers
                 if (data.TryGetProperty("categoryId", out var catProp))
                 {
                     string? catStr = catProp.GetString();
-                    product.CategoryId = string.IsNullOrEmpty(catStr) ? null
-                        : Guid.TryParse(catStr, out Guid g) ? g : product.CategoryId;
+                    product.CategoryId = Guid.TryParse(catStr, out Guid g) ? g : product.CategoryId;
                 }
 
-                if (data.TryGetProperty("isActive", out var activeProp))
-                    product.IsActive = activeProp.GetBoolean();
+                // if (data.TryGetProperty("isActive", out var activeProp))
+                //     product.IsActive = activeProp.GetBoolean();
 
                 if (data.TryGetProperty("attributes", out var attrProp))
                     product.Attributes = attrProp.ValueKind == JsonValueKind.Null
@@ -169,15 +158,8 @@ namespace FluxifyAPI.Controllers
 
                 await _context.SaveChangesAsync();
 
-                return Ok(new
-                {
-                    id = product.Id,
-                    name = product.Name,
-                    description = product.Description,
-                    categoryId = product.CategoryId,
-                    isActive = product.IsActive,
-                    attributes = product.Attributes
-                });
+                await _context.Entry(product).Collection(p => p.ProductSkus).LoadAsync();
+                return Ok(product.ToProductDto());
             }
             catch (Exception ex)
             {
