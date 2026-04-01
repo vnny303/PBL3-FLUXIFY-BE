@@ -18,6 +18,7 @@ namespace FluxifyAPI.Models
         public int Quantity { get; set; }
         [JsonIgnore]
         public Cart Cart { get; set; } = null!;
+        [JsonIgnore]
         public ProductSku ProductSku { get; set; } = null!;
     }
 }

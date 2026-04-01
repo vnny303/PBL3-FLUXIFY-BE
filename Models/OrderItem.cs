@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace FluxifyAPI.Models
@@ -22,6 +20,7 @@ namespace FluxifyAPI.Models
         public decimal UnitPrice { get; set; }
         [JsonIgnore]
         public Order Order { get; set; } = null!;
+        [JsonIgnore]
         public ProductSku ProductSku { get; set; } = null!;
     }
 }

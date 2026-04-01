@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 namespace FluxifyAPI.Models
 {
     [Table("platform_users")]
@@ -9,11 +7,11 @@ namespace FluxifyAPI.Models
         [Column("id")]
         public Guid Id { get; set; }
         [Column("fullname")]
-        public string Fullname { get; set; } = null!;
+        public string Fullname { get; set; } = string.Empty;
         [Column("email")]
-        public string Email { get; set; } = null!;
+        public string Email { get; set; } = string.Empty;
         [Column("password_hash")]
-        public string PasswordHash { get; set; } = null!;
+        public string PasswordHash { get; set; } = string.Empty;
         [Column("phone")]
         public string? Phone { get; set; }
         [Column("role")]

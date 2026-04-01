@@ -79,6 +79,66 @@ public partial class AppDbContext : DbContext
             .HasDefaultValue(0);
 
         // fix multiple cascade paths
+        modelBuilder.Entity<Tenant>()
+            .HasOne(t => t.Owner)
+            .WithMany(u => u.Tenants)
+            .HasForeignKey(t => t.OwnerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Customer>()
+            .HasOne(c => c.Tenant)
+            .WithMany(t => t.Customers)
+            .HasForeignKey(c => c.TenantId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Category>()
+            .HasOne(c => c.Tenant)
+            .WithMany(t => t.Categories)
+            .HasForeignKey(c => c.TenantId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Product>()
+            .HasOne(p => p.Tenant)
+            .WithMany()
+            .HasForeignKey(p => p.TenantId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Order>()
+            .HasOne(o => o.Tenant)
+            .WithMany(t => t.Orders)
+            .HasForeignKey(o => o.TenantId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Order>()
+            .HasOne(o => o.Customer)
+            .WithMany(c => c.Orders)
+            .HasForeignKey(o => o.CustomerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Cart>()
+            .HasOne<Tenant>()
+            .WithMany()
+            .HasForeignKey(c => c.TenantId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Customer>()
+            .HasOne(c => c.Cart)
+            .WithOne(cart => cart.Customer)
+            .HasForeignKey<Cart>(cart => cart.CustomerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<CartItem>()
+            .HasOne(ci => ci.Cart)
+            .WithMany(c => c.CartItems)
+            .HasForeignKey(ci => ci.CartId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<CartItem>()
+            .HasOne(ci => ci.ProductSku)
+            .WithMany(ps => ps.CartItems)
+            .HasForeignKey(ci => ci.ProductSkuId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         modelBuilder.Entity<Product>()
             .HasOne(p => p.Category)
             .WithMany(c => c.Products)
@@ -90,5 +150,18 @@ public partial class AppDbContext : DbContext
             .WithMany(p => p.ProductSkus)
             .HasForeignKey(ps => ps.ProductId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<OrderItem>()
+            .HasOne(oi => oi.Order)
+            .WithMany(o => o.OrderItems)
+            .HasForeignKey(oi => oi.OrderId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<OrderItem>()
+            .HasOne(oi => oi.ProductSku)
+            .WithMany(ps => ps.OrderItems)
+            .HasForeignKey(oi => oi.ProductSkuId)
+            .OnDelete(DeleteBehavior.Restrict);
+
     }
 }

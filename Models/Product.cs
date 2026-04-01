@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace FluxifyAPI.Models
@@ -15,7 +13,7 @@ namespace FluxifyAPI.Models
         [Column("category_id")]
         public Guid CategoryId { get; set; }
         [Column("name")]
-        public string Name { get; set; } = null!;
+        public string Name { get; set; } = string.Empty;
         [Column("description")]
         public string? Description { get; set; }
         [Column("attributes")]

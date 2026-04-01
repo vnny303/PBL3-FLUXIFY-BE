@@ -10,14 +10,14 @@ namespace FluxifyAPI.DTOs.Customer
 
         public Guid TenantId { get; set; }
 
-        public string Email { get; set; } = null!;
+        public string Email { get; set; } = string.Empty;
 
         public bool? IsActive { get; set; }
 
         public DateTime? CreatedAt { get; set; }
 
-        public CartDto Cart { get; set; } = null!;
-        public List<OrderDto>? Orders { get; set; } = new List<OrderDto>();
+        public CartDto? Cart { get; set; }
+        public List<OrderDto> Orders { get; set; } = new List<OrderDto>();
 
     }
 }

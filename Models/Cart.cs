@@ -14,6 +14,6 @@ namespace FluxifyAPI.Models
         public Guid TenantId { get; set; }
         [JsonIgnore]
         public Customer Customer { get; set; } = null!;
-        public List<CartItem>? CartItems { get; set; } = new List<CartItem>();
+        public List<CartItem> CartItems { get; set; } = new List<CartItem>();
     }
 }

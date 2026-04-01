@@ -22,11 +22,20 @@ namespace FluxifyAPI.Controllers
         public async Task<List<PlatformUser>> GetAllPlatformUsers()
         {
             return await _context.PlatformUsers
-                        .Include(p => p.Tenants)
-                            .ThenInclude(t => t.Categories)
-                        .Include(p => p.Tenants)
-                            .ThenInclude(t => t.Customers)
-                        .ToListAsync();
+                .AsSplitQuery()
+                .Include(p => p.Tenants)
+                    .ThenInclude(t => t.Categories)
+                        .ThenInclude(c => c.Products)
+                            .ThenInclude(p => p.ProductSkus)
+                .Include(p => p.Tenants)
+                    .ThenInclude(t => t.Customers)
+                        .ThenInclude(c => c.Cart)
+                            .ThenInclude(cart => cart.CartItems)
+                .Include(p => p.Tenants)
+                    .ThenInclude(t => t.Customers)
+                        .ThenInclude(c => c.Orders)
+                            .ThenInclude(o => o.OrderItems)
+                .ToListAsync();
         }
         [HttpDelete("platformUsers/{id}")]
         public async Task<IActionResult> DeletePlatformUser(Guid id)

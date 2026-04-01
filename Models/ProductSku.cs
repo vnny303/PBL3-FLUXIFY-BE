@@ -1,4 +1,3 @@
-using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
@@ -21,7 +20,7 @@ namespace FluxifyAPI.Models
         public string? Attributes { get; set; }
         [JsonIgnore]
         public Product Product { get; set; } = null!;
-        public List<CartItem>? CartItems { get; set; } = new List<CartItem>();
-        public List<OrderItem>? OrderItems { get; set; } = new List<OrderItem>();
+        public List<CartItem> CartItems { get; set; } = new List<CartItem>();
+        public List<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
     }
 }

@@ -51,3 +51,24 @@ Hoa_2h/07/03/2026
 \*Mapper: chuyển từ dữ liệu trong database sang DTO (giúp bảo mật), được sử dụng trong các Controllers (hiện tại chưa sử dụng)
 
 \*AppDbContext: refactor lại để gọn hơn (chuyển từ Database-first scaffold sang Code-first clean design)
+
+================================================================================
+Hoa_02/04/2026
+\*Models: thêm Cart.cs, quan hệ Cart - 1,1 - Customer, Cart - n,1 - Tenant, Cart - 1,n - CartItem
+
+\*Interfaces: chứa các interface CRUD của Repository. Khi thêm/sửa CRUD thì thêm vào đây (lưu ý chỉnh sửa tương ứng bên Repository)
+
+\*Repository: chứa các CRUD được sử dụng trong Controllers (để các controller nhìn gọn hơn)
+
+\*DTOs:
+
+- Các file Create...RequestDto.cs, Update...RequestDto.cs: model được sử dụng trong các hàm Create, Update trong controller thay vì sử dụng thẳng các models trong folder Models
+
+\*Mapper: chuyển từ Model sang DTO và CreateDTO sang Model (sử dụng trong api POST)
+
+\*Controllers:
+
+- TenantController.cs: hiện tại chỉ đang có api bên phần view của merchant, view của customer cập nhật sau (1 class mới)
+- CartController.cs: chỉ có GET cart, các hàm crud trong giỏ hàng liên quan bên CartItem
+
+\*Database.sql: thêm dữ liệu mới
