@@ -1,9 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FluxifyAPI.Data;
+using FluxifyAPI.DTOs.Product;
+using FluxifyAPI.DTOs.ProductSku;
 using FluxifyAPI.Models;
 using FluxifyAPI.Mapper;
-using System.Text.Json;
 
 namespace FluxifyAPI.Controllers
 {
@@ -32,7 +33,7 @@ namespace FluxifyAPI.Controllers
                 .Include(p => p.ProductSkus)
                 .ToListAsync();
 
-            return Ok(products);
+            return Ok(products.Select(p => p.ToProductDto()));
         }
 
         // GET BY ID
@@ -48,7 +49,7 @@ namespace FluxifyAPI.Controllers
             if (product == null)
                 return NotFound();
 
-            return Ok(product);
+            return Ok(product.ToProductDto());
         }
 
         // POST: Tao san pham moi (co the kem danh sach SKUs)
@@ -65,55 +66,20 @@ namespace FluxifyAPI.Controllers
         //   ]
         // }
         [HttpPost]
-        public async Task<ActionResult> CreateProduct(Guid tenantId, [FromBody] JsonElement data)
+        public async Task<ActionResult> CreateProduct(Guid tenantId, [FromBody] CreateProductRequestDto createDto)
         {
             try
             {
-                string name = data.GetProperty("name").GetString() ?? "";
-                if (string.IsNullOrWhiteSpace(name))
-                    return BadRequest(new { message = "Ten san pham khong duoc de trong!" });
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
 
-                string? description = data.TryGetProperty("description", out var descProp)
-                    ? descProp.GetString() : null;
+                var categoryExists = await _context.Categories.AnyAsync(c => c.Id == createDto.CategoryId && c.TenantId == tenantId);
+                if (!categoryExists)
+                    return BadRequest(new { message = "Category không tồn tại trong tenant này" });
 
-                Guid? categoryId = null;
-                if (data.TryGetProperty("categoryId", out var catProp))
-                {
-                    string? catStr = catProp.GetString();
-                    if (!string.IsNullOrEmpty(catStr) && Guid.TryParse(catStr, out Guid catGuid))
-                        categoryId = catGuid;
-                }
-
-                bool isActive = !data.TryGetProperty("isActive", out var activeProp) || activeProp.GetBoolean();
-
-                // attributes JSON: dinh nghia cac nhom tuy chon cua san pham
-                // Vi du: {"color":["Do","Xanh"],"size":["S","M","L"]}
-                string? attributes = null;
-                if (data.TryGetProperty("attributes", out var attrProp) && attrProp.ValueKind != JsonValueKind.Null)
-                    attributes = attrProp.GetRawText();
-
-                var product = new Product
-                {
-                    Id = Guid.NewGuid(),
-                    TenantId = tenantId,
-                    CategoryId = (Guid)categoryId,
-                    Name = name.Trim(),
-                    Description = description?.Trim(),
-                    Attributes = attributes
-                };
+                var product = createDto.ToProductFromCreateDto(tenantId);
 
                 _context.Products.Add(product);
-
-                // Tao SKUs neu duoc gui kem
-                if (data.TryGetProperty("skus", out var skusProp) && skusProp.ValueKind == JsonValueKind.Array)
-                {
-                    foreach (var skuEl in skusProp.EnumerateArray())
-                    {
-                        var sku = ParseSkuElement(skuEl, product.Id);
-                        _context.ProductSkus.Add(sku);
-                        product.ProductSkus.Add(sku);
-                    }
-                }
 
                 await _context.SaveChangesAsync();
 
@@ -127,34 +93,27 @@ namespace FluxifyAPI.Controllers
 
         // PUT: Cap nhat thong tin san pham (khong bao gom SKUs)
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateProduct(Guid tenantId, Guid id, [FromBody] JsonElement data)
+        public async Task<IActionResult> UpdateProduct(Guid tenantId, Guid id, [FromBody] UpdateProductRequestDto updateDto)
         {
             try
             {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
                 var product = await _context.Products
                     .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == id);
 
                 if (product == null)
                     return NotFound(new { message = "Khong tim thay san pham!" });
 
-                if (data.TryGetProperty("name", out var nameProp))
-                    product.Name = nameProp.GetString() ?? product.Name;
-
-                if (data.TryGetProperty("description", out var descProp))
-                    product.Description = descProp.GetString();
-
-                if (data.TryGetProperty("categoryId", out var catProp))
+                if (updateDto.CategoryId.HasValue)
                 {
-                    string? catStr = catProp.GetString();
-                    product.CategoryId = Guid.TryParse(catStr, out Guid g) ? g : product.CategoryId;
+                    var categoryExists = await _context.Categories.AnyAsync(c => c.Id == updateDto.CategoryId.Value && c.TenantId == tenantId);
+                    if (!categoryExists)
+                        return BadRequest(new { message = "Category không tồn tại trong tenant này" });
                 }
 
-                // if (data.TryGetProperty("isActive", out var activeProp))
-                //     product.IsActive = activeProp.GetBoolean();
-
-                if (data.TryGetProperty("attributes", out var attrProp))
-                    product.Attributes = attrProp.ValueKind == JsonValueKind.Null
-                        ? null : attrProp.GetRawText();
+                updateDto.ToProductFromUpdateDto(product);
 
                 await _context.SaveChangesAsync();
 
@@ -206,25 +165,28 @@ namespace FluxifyAPI.Controllers
                 .Where(s => s.ProductId == id)
                 .ToListAsync();
 
-            return Ok(skus.Select(MapSku));
+            return Ok(skus.Select(s => s.ToProductSkuDto()));
         }
 
         // POST: Them SKU cho san pham
         // Body mau: { "price": 150000, "stock": 10, "attributes": {"color":"Do","size":"M"} }
         [HttpPost("{id}/skus")]
-        public async Task<ActionResult> CreateSku(Guid tenantId, Guid id, [FromBody] JsonElement data)
+        public async Task<ActionResult> CreateSku(Guid tenantId, Guid id, [FromBody] CreateProductSkuRequestDto createDto)
         {
             try
             {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
                 var exists = await _context.Products.AnyAsync(p => p.TenantId == tenantId && p.Id == id);
                 if (!exists)
                     return NotFound(new { message = "Khong tim thay san pham!" });
 
-                var sku = ParseSkuElement(data, id);
+                var sku = createDto.ToProductSkuFromCreateDto(id);
                 _context.ProductSkus.Add(sku);
                 await _context.SaveChangesAsync();
 
-                return Ok(MapSku(sku));
+                return Ok(sku.ToProductSkuDto());
             }
             catch (Exception ex)
             {
@@ -234,10 +196,13 @@ namespace FluxifyAPI.Controllers
 
         // PUT: Cap nhat SKU
         [HttpPut("{id}/skus/{skuId}")]
-        public async Task<IActionResult> UpdateSku(Guid tenantId, Guid id, Guid skuId, [FromBody] JsonElement data)
+        public async Task<IActionResult> UpdateSku(Guid tenantId, Guid id, Guid skuId, [FromBody] UpdateProductSkuRequestDto updateDto)
         {
             try
             {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
                 var sku = await _context.ProductSkus
                     .Include(s => s.Product)
                     .FirstOrDefaultAsync(s => s.Id == skuId && s.ProductId == id && s.Product.TenantId == tenantId);
@@ -245,22 +210,10 @@ namespace FluxifyAPI.Controllers
                 if (sku == null)
                     return NotFound(new { message = "Khong tim thay SKU!" });
 
-                if (data.TryGetProperty("price", out var priceProp))
-                    sku.Price = priceProp.ValueKind == JsonValueKind.Number
-                        ? priceProp.GetDecimal()
-                        : decimal.TryParse(priceProp.GetString(), out decimal p) ? p : sku.Price;
-
-                if (data.TryGetProperty("stock", out var stockProp))
-                    sku.Stock = stockProp.ValueKind == JsonValueKind.Number
-                        ? stockProp.GetInt32()
-                        : int.TryParse(stockProp.GetString(), out int s) ? s : sku.Stock;
-
-                if (data.TryGetProperty("attributes", out var attrProp))
-                    sku.Attributes = attrProp.ValueKind == JsonValueKind.Null
-                        ? null : attrProp.GetRawText();
+                updateDto.ToProductSkuFromUpdateDto(sku);
 
                 await _context.SaveChangesAsync();
-                return Ok(MapSku(sku));
+                return Ok(sku.ToProductSkuDto());
             }
             catch (Exception ex)
             {
@@ -291,46 +244,5 @@ namespace FluxifyAPI.Controllers
                 return BadRequest(new { message = "Loi khi xoa SKU", error = ex.Message });
             }
         }
-
-        // ─────────────────────────────────────────────
-        // HELPERS
-        // ─────────────────────────────────────────────
-
-        private static ProductSku ParseSkuElement(JsonElement el, Guid productId)
-        {
-            decimal price = 0;
-            if (el.TryGetProperty("price", out var priceProp))
-                price = priceProp.ValueKind == JsonValueKind.Number
-                    ? priceProp.GetDecimal()
-                    : decimal.TryParse(priceProp.GetString(), out decimal p) ? p : 0;
-
-            int stock = 0;
-            if (el.TryGetProperty("stock", out var stockProp))
-                stock = stockProp.ValueKind == JsonValueKind.Number
-                    ? stockProp.GetInt32()
-                    : int.TryParse(stockProp.GetString(), out int s) ? s : 0;
-
-            string? attributes = null;
-            if (el.TryGetProperty("attributes", out var attrProp) && attrProp.ValueKind != JsonValueKind.Null)
-                attributes = attrProp.GetRawText();
-
-            return new ProductSku
-            {
-                Id = Guid.NewGuid(),
-                ProductId = productId,
-                Price = price,
-                Stock = stock,
-                Attributes = attributes
-            };
-        }
-
-        private static object MapSku(ProductSku sku) => new
-        {
-            id = sku.Id,
-            productId = sku.ProductId,
-            price = sku.Price,
-            stock = sku.Stock,
-            attributes = sku.Attributes
-        };
     }
 }

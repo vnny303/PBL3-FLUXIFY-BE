@@ -1,0 +1,15 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace FluxifyAPI.DTOs.ProductSku
+{
+    public class CreateProductSkuRequestDto
+    {
+        [Range(0, double.MaxValue, ErrorMessage = "Giá không được âm")]
+        public decimal Price { get; set; }
+
+        [Range(0, int.MaxValue, ErrorMessage = "Tồn kho không được âm")]
+        public int Stock { get; set; }
+
+        public string? Attributes { get; set; }
+    }
+}

@@ -72,3 +72,9 @@ Hoa_02/04/2026
 - CartController.cs: chỉ có GET cart, các hàm crud trong giỏ hàng liên quan bên CartItem
 
 \*Database.sql: thêm dữ liệu mới
+
+Luc_22h/3/4/2026
+1. Thêm các file Create/Update ở DTO
+2. Bổ sung hàm chuẩn hóa Mapper theo 2 chiều 
+3. Refactor controoler từ JsonElement/string sang DTO + mapper
+

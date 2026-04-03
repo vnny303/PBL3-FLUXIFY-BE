@@ -20,5 +20,37 @@ namespace FluxifyAPI.Mapper
                 Attributes = productSku.Attributes
             };
         }
+
+        public static ProductSku ToProductSkuFromCreateDto(this CreateProductSkuRequestDto createDto, Guid productId)
+        {
+            return new ProductSku
+            {
+                Id = Guid.NewGuid(),
+                ProductId = productId,
+                Price = createDto.Price,
+                Stock = createDto.Stock,
+                Attributes = createDto.Attributes
+            };
+        }
+
+        public static ProductSku ToProductSkuFromUpdateDto(this UpdateProductSkuRequestDto updateDto, ProductSku existingProductSku)
+        {
+            if (updateDto.Price.HasValue)
+            {
+                existingProductSku.Price = updateDto.Price.Value;
+            }
+
+            if (updateDto.Stock.HasValue)
+            {
+                existingProductSku.Stock = updateDto.Stock.Value;
+            }
+
+            if (updateDto.Attributes != null)
+            {
+                existingProductSku.Attributes = updateDto.Attributes;
+            }
+
+            return existingProductSku;
+        }
     }
 }

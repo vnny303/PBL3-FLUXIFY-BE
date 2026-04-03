@@ -22,5 +22,37 @@ namespace FluxifyAPI.Mapper
                 Products = category.Products?.Select(p => p.ToProductDto()).ToList() ?? new List<ProductDto>()
             };
         }
+
+        public static Category ToCategoryFromCreateDto(this CreateCategoryRequestDto createDto, Guid tenantId)
+        {
+            return new Category
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                Name = createDto.Name.Trim(),
+                Description = createDto.Description?.Trim(),
+                IsActive = createDto.IsActive ?? true
+            };
+        }
+
+        public static Category ToCategoryFromUpdateDto(this UpdateCategoryRequestDto updateDto, Category existingCategory)
+        {
+            if (!string.IsNullOrWhiteSpace(updateDto.Name))
+            {
+                existingCategory.Name = updateDto.Name.Trim();
+            }
+
+            if (updateDto.Description != null)
+            {
+                existingCategory.Description = updateDto.Description.Trim();
+            }
+
+            if (updateDto.IsActive.HasValue)
+            {
+                existingCategory.IsActive = updateDto.IsActive.Value;
+            }
+
+            return existingCategory;
+        }
     }
 }

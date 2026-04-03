@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FluxifyAPI.Data;
+using FluxifyAPI.DTOs.Cartegory;
+using FluxifyAPI.Mapper;
 using FluxifyAPI.Models;
-using System.Text.Json;
 
 namespace FluxifyAPI.Controllers
 {
@@ -37,60 +38,22 @@ namespace FluxifyAPI.Controllers
 
         // POST - BỎ KIỂM TRA SESSION
         [HttpPost]
-        public async Task<ActionResult> CreateCategory(Guid tenantId, [FromBody] JsonElement data)
+        public async Task<ActionResult> CreateCategory(Guid tenantId, [FromBody] CreateCategoryRequestDto createDto)
         {
             try
             {
-                Console.WriteLine("=== CREATE CATEGORY ===");
-                Console.WriteLine($"TenantId: {tenantId}");
-                Console.WriteLine($"Raw Data: {data}");
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
 
-                // Parse JSON
-                string name = data.GetProperty("name").GetString() ?? "";
-                string? description = data.TryGetProperty("description", out var descProp)
-                    ? descProp.GetString()
-                    : null;
-                bool isActive = data.TryGetProperty("isActive", out var activeProp)
-                    ? activeProp.GetBoolean()
-                    : true;
-
-                Console.WriteLine($"Parsed - Name: {name}, Description: {description}, IsActive: {isActive}");
-
-                // Validate
-                if (string.IsNullOrWhiteSpace(name))
-                {
-                    return BadRequest(new { message = "Tên danh mục không được để trống!" });
-                }
-
-                // Create
-                var category = new Category
-                {
-                    Id = Guid.NewGuid(),
-                    TenantId = tenantId,
-                    Name = name.Trim(),
-                    Description = description?.Trim(),
-                    IsActive = isActive
-                };
+                var category = createDto.ToCategoryFromCreateDto(tenantId);
 
                 _context.Categories.Add(category);
                 await _context.SaveChangesAsync();
 
-                Console.WriteLine($"✅ Category created: {category.Id}");
-
-                return Ok(new
-                {
-                    id = category.Id,
-                    name = category.Name,
-                    description = category.Description,
-                    isActive = category.IsActive
-                });
+                return Ok(category.ToCategoryDto());
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ ERROR: {ex.Message}");
-                Console.WriteLine($"StackTrace: {ex.StackTrace}");
-                Console.WriteLine($"InnerException: {ex.InnerException?.Message}");
-
                 return BadRequest(new
                 {
                     message = "Lỗi khi tạo danh mục",
@@ -102,10 +65,13 @@ namespace FluxifyAPI.Controllers
 
         // PUT - BỎ KIỂM TRA SESSION
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateCategory(Guid tenantId, Guid id, [FromBody] JsonElement data)
+        public async Task<IActionResult> UpdateCategory(Guid tenantId, Guid id, [FromBody] UpdateCategoryRequestDto updateDto)
         {
             try
             {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
                 var category = await _context.Categories
                     .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.Id == id);
 
@@ -114,23 +80,11 @@ namespace FluxifyAPI.Controllers
                     return NotFound(new { message = "Không tìm thấy danh mục!" });
                 }
 
-                category.Name = data.GetProperty("name").GetString() ?? category.Name;
-                category.Description = data.TryGetProperty("description", out var descProp)
-                    ? descProp.GetString()
-                    : category.Description;
-                category.IsActive = data.TryGetProperty("isActive", out var activeProp)
-                    ? activeProp.GetBoolean()
-                    : category.IsActive;
+                updateDto.ToCategoryFromUpdateDto(category);
 
                 await _context.SaveChangesAsync();
 
-                return Ok(new
-                {
-                    id = category.Id,
-                    name = category.Name,
-                    description = category.Description,
-                    isActive = category.IsActive
-                });
+                return Ok(category.ToCategoryDto());
             }
             catch (Exception ex)
             {

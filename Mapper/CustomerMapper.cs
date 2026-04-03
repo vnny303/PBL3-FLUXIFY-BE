@@ -1,4 +1,5 @@
 using FluxifyAPI.DTOs.Customer;
+using FluxifyAPI.DTOs;
 using FluxifyAPI.DTOs.Order;
 using FluxifyAPI.Models;
 
@@ -30,6 +31,39 @@ namespace FluxifyAPI.Mapper
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
+        }
+
+        public static Customer ToCustomerFromRegisterDto(this RegisterCustomerRequest registerDto, Guid tenantId)
+        {
+            return new Customer
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                Email = registerDto.Email,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password),
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+        }
+
+        public static Customer ToCustomerFromUpdateDto(this UpdateCustomerRequestDto updateDto, Customer existingCustomer)
+        {
+            if (!string.IsNullOrWhiteSpace(updateDto.Email))
+            {
+                existingCustomer.Email = updateDto.Email.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(updateDto.Password))
+            {
+                existingCustomer.PasswordHash = BCrypt.Net.BCrypt.HashPassword(updateDto.Password);
+            }
+
+            if (updateDto.IsActive.HasValue)
+            {
+                existingCustomer.IsActive = updateDto.IsActive;
+            }
+
+            return existingCustomer;
         }
     }
 }

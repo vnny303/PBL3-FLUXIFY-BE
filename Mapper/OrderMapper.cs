@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Threading.Tasks;
 using FluxifyAPI.DTOs.Order;
 using FluxifyAPI.Models;
@@ -37,6 +36,46 @@ namespace FluxifyAPI.Mapper
                 Quantity = orderItem.Quantity,
                 UnitPrice = orderItem.UnitPrice
             };
+        }
+
+        public static Order ToOrderFromCreateDto(this CreateOrderRequestDto createDto, Guid tenantId)
+        {
+            var orderId = Guid.NewGuid();
+
+            var order = new Order
+            {
+                Id = orderId,
+                TenantId = tenantId,
+                CustomerId = createDto.CustomerId,
+                Address = createDto.Address.Trim(),
+                Status = "Pending",
+                PaymentMethod = string.IsNullOrWhiteSpace(createDto.PaymentMethod) ? "COD" : createDto.PaymentMethod.Trim(),
+                PaymentStatus = string.IsNullOrWhiteSpace(createDto.PaymentStatus) ? "Pending" : createDto.PaymentStatus.Trim(),
+                CreatedAt = DateTime.UtcNow,
+                OrderItems = createDto.OrderItems.Select(i => i.ToOrderItemFromCreateDto(orderId)).ToList()
+            };
+
+            order.TotalAmount = order.OrderItems.Sum(i => i.UnitPrice * i.Quantity);
+            return order;
+        }
+
+        public static OrderItem ToOrderItemFromCreateDto(this CreateOrderItemRequestDto createDto, Guid orderId)
+        {
+            return new OrderItem
+            {
+                Id = Guid.NewGuid(),
+                OrderId = orderId,
+                ProductSkuId = createDto.ProductSkuId,
+                Quantity = createDto.Quantity,
+                UnitPrice = createDto.UnitPrice,
+                SelectedOptions = null
+            };
+        }
+
+        public static Order ToOrderFromUpdateStatusDto(this UpdateOrderStatusRequestDto updateDto, Order existingOrder)
+        {
+            existingOrder.Status = updateDto.Status.Trim();
+            return existingOrder;
         }
     }
 }

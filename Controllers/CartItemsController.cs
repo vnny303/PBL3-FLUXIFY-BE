@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FluxifyAPI.Data;
+using FluxifyAPI.DTOs.Cart;
+using FluxifyAPI.Mapper;
 using FluxifyAPI.Models;
-using System.Text.Json;
 
 namespace FluxifyAPI.Controllers
 {
@@ -49,12 +50,15 @@ namespace FluxifyAPI.Controllers
 
         // POST: Thêm sản phẩm vào giỏ hàng (nếu đã có thì cộng dồn số lượng)
         [HttpPost]
-        public async Task<ActionResult> AddToCart(Guid tenantId, Guid customerId, [FromBody] JsonElement data)
+        public async Task<ActionResult> AddToCart(Guid tenantId, Guid customerId, [FromBody] CreateCartItemRequestDto createDto)
         {
             try
             {
                 Console.WriteLine("=== ADD TO CART ===");
                 Console.WriteLine($"TenantId: {tenantId}, CustomerId: {customerId}");
+
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
 
                 // Xác nhận customer thuộc tenant
                 var customer = await _context.Customers
@@ -63,27 +67,15 @@ namespace FluxifyAPI.Controllers
                 if (customer == null)
                     return NotFound(new { message = "Không tìm thấy khách hàng!" });
 
-                // Parse JSON
-                if (!data.TryGetProperty("productSkuId", out var skuIdProp) ||
-                    !Guid.TryParse(skuIdProp.GetString(), out Guid productSkuId))
-                    return BadRequest(new { message = "productSkuId không hợp lệ!" });
-
-                int quantity = 1;
-                if (data.TryGetProperty("quantity", out var qtyProp) && qtyProp.ValueKind == JsonValueKind.Number)
-                    quantity = qtyProp.GetInt32();
-
-                if (quantity <= 0)
-                    return BadRequest(new { message = "Số lượng phải lớn hơn 0!" });
-
                 // Xác nhận SKU thuộc tenant và còn hàng
                 var sku = await _context.ProductSkus
                     .Include(s => s.Product)
-                    .FirstOrDefaultAsync(s => s.Id == productSkuId && s.Product.TenantId == tenantId);
+                    .FirstOrDefaultAsync(s => s.Id == createDto.ProductSkuId && s.Product.TenantId == tenantId);
 
                 if (sku == null)
                     return NotFound(new { message = "Không tìm thấy SKU sản phẩm!" });
 
-                if (sku.Stock < quantity)
+                if (sku.Stock < createDto.Quantity)
                     return BadRequest(new { message = $"SKU chỉ còn {sku.Stock} trong kho!" });
 
                 // Tìm hoặc tạo Cart cho customer
@@ -92,7 +84,7 @@ namespace FluxifyAPI.Controllers
 
                 if (cart == null)
                 {
-                    cart = new Cart { Id = Guid.NewGuid(), CustomerId = customerId };
+                    cart = new Cart { Id = Guid.NewGuid(), CustomerId = customerId, TenantId = tenantId };
                     _context.Carts.Add(cart);
                     await _context.SaveChangesAsync();
                 }
@@ -100,11 +92,15 @@ namespace FluxifyAPI.Controllers
                 // Kiểm tra nếu đã có item này trong giỏ (cùng SKU + selectedOptions)
                 var existing = await _context.CartItems
                     .FirstOrDefaultAsync(ci => ci.CartId == cart.Id
-                                            && ci.ProductSkuId == productSkuId);
+                                            && ci.ProductSkuId == createDto.ProductSkuId);
 
                 if (existing != null)
                 {
-                    existing.Quantity += quantity;
+                    existing.Quantity += createDto.Quantity;
+
+                    if (sku.Stock < existing.Quantity)
+                        return BadRequest(new { message = $"SKU chỉ còn {sku.Stock} trong kho!" });
+
                     await _context.SaveChangesAsync();
 
                     return Ok(new
@@ -117,13 +113,7 @@ namespace FluxifyAPI.Controllers
                 }
 
                 // Tạo mới cart item
-                var cartItem = new CartItem
-                {
-                    Id = Guid.NewGuid(),
-                    CartId = cart.Id,
-                    ProductSkuId = productSkuId,
-                    Quantity = quantity
-                };
+                var cartItem = createDto.ToCartItemFromCreateDto(cart.Id);
 
                 _context.CartItems.Add(cartItem);
                 await _context.SaveChangesAsync();
@@ -152,10 +142,13 @@ namespace FluxifyAPI.Controllers
 
         // PUT: Cập nhật số lượng của một cart item
         [HttpPut("{id}")]
-        public async Task<ActionResult> UpdateCartItem(Guid tenantId, Guid customerId, Guid id, [FromBody] JsonElement data)
+        public async Task<ActionResult> UpdateCartItem(Guid tenantId, Guid customerId, Guid id, [FromBody] UpdateCartItemRequestDto updateDto)
         {
             try
             {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
                 var customer = await _context.Customers
                     .FirstOrDefaultAsync(c => c.Id == customerId && c.TenantId == tenantId);
 
@@ -168,20 +161,13 @@ namespace FluxifyAPI.Controllers
                 if (cartItem == null)
                     return NotFound(new { message = "Không tìm thấy sản phẩm trong giỏ hàng!" });
 
-                if (!data.TryGetProperty("quantity", out var qtyProp) || qtyProp.ValueKind != JsonValueKind.Number)
-                    return BadRequest(new { message = "Thiếu hoặc sai định dạng quantity!" });
-
-                int newQuantity = qtyProp.GetInt32();
-                if (newQuantity <= 0)
-                    return BadRequest(new { message = "Số lượng phải lớn hơn 0!" });
-
                 // Kiem tra ton kho qua SKU
                 var sku = await _context.ProductSkus
                     .FirstOrDefaultAsync(s => s.Id == cartItem.ProductSkuId);
-                if (sku != null && sku.Stock < newQuantity)
+                if (sku != null && sku.Stock < updateDto.Quantity)
                     return BadRequest(new { message = $"SKU chỉ còn {sku.Stock} trong kho!" });
 
-                cartItem.Quantity = newQuantity;
+                updateDto.ToCartItemFromUpdateDto(cartItem);
                 await _context.SaveChangesAsync();
 
                 return Ok(new
