@@ -27,7 +27,6 @@ namespace FluxifyAPI.Mapper
                 Orders = tenant.Orders?.Select(o => o.ToOrderDto()).ToList() ?? new List<OrderDto>()
             };
         }
-
         public static Tenant ToTenantFromCreateDto(this CreateTenantRequestDto createDto, Guid ownerId)
         {
             return new Tenant
@@ -39,7 +38,6 @@ namespace FluxifyAPI.Mapper
                 IsActive = createDto.IsActive ?? true
             };
         }
-
         public static Tenant ToTenantFromRegisterDto(this RegisterMerchantRequest registerDto, Guid ownerId)
         {
             return new Tenant
@@ -58,17 +56,14 @@ namespace FluxifyAPI.Mapper
             {
                 existingTenant.Subdomain = updateDto.Subdomain.Trim().ToLowerInvariant();
             }
-
             if (!string.IsNullOrWhiteSpace(updateDto.StoreName))
             {
                 existingTenant.StoreName = updateDto.StoreName.Trim();
             }
-
             if (updateDto.IsActive.HasValue)
             {
                 existingTenant.IsActive = updateDto.IsActive;
             }
-
             return existingTenant;
         }
     }

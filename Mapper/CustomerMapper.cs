@@ -52,17 +52,14 @@ namespace FluxifyAPI.Mapper
             {
                 existingCustomer.Email = updateDto.Email.Trim();
             }
-
             if (!string.IsNullOrWhiteSpace(updateDto.Password))
             {
                 existingCustomer.PasswordHash = BCrypt.Net.BCrypt.HashPassword(updateDto.Password);
             }
-
             if (updateDto.IsActive.HasValue)
             {
                 existingCustomer.IsActive = updateDto.IsActive;
             }
-
             return existingCustomer;
         }
     }

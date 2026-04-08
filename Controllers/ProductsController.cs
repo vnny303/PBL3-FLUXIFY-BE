@@ -30,6 +30,7 @@ namespace FluxifyAPI.Controllers
             var products = await _context.Products
                 .Where(p => p.TenantId == tenantId)
                 .Include(p => p.Category)
+                .Include(p => p.ProductImages)
                 .Include(p => p.ProductSkus)
                 .ToListAsync();
 
@@ -43,6 +44,7 @@ namespace FluxifyAPI.Controllers
             var product = await _context.Products
                 .Where(p => p.TenantId == tenantId && p.Id == id)
                 .Include(p => p.Category)
+                .Include(p => p.ProductImages)
                 .Include(p => p.ProductSkus)
                 .FirstOrDefaultAsync();
 
@@ -73,6 +75,9 @@ namespace FluxifyAPI.Controllers
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
+                if (createDto.Images.Count(i => i.IsPrimary) > 1)
+                    return BadRequest(new { message = "Chi duoc dat toi da 1 anh chinh cho moi san pham" });
+
                 var categoryExists = await _context.Categories.AnyAsync(c => c.Id == createDto.CategoryId && c.TenantId == tenantId);
                 if (!categoryExists)
                     return BadRequest(new { message = "Category không tồn tại trong tenant này" });
@@ -100,7 +105,11 @@ namespace FluxifyAPI.Controllers
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
+                if (updateDto.Images != null && updateDto.Images.Count(i => i.IsPrimary) > 1)
+                    return BadRequest(new { message = "Chi duoc dat toi da 1 anh chinh cho moi san pham" });
+
                 var product = await _context.Products
+                    .Include(p => p.ProductImages)
                     .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == id);
 
                 if (product == null)
@@ -113,11 +122,17 @@ namespace FluxifyAPI.Controllers
                         return BadRequest(new { message = "Category không tồn tại trong tenant này" });
                 }
 
+                if (updateDto.Images != null)
+                {
+                    _context.ProductImages.RemoveRange(product.ProductImages);
+                }
+
                 updateDto.ToProductFromUpdateDto(product);
 
                 await _context.SaveChangesAsync();
 
                 await _context.Entry(product).Collection(p => p.ProductSkus).LoadAsync();
+                await _context.Entry(product).Collection(p => p.ProductImages).LoadAsync();
                 return Ok(product.ToProductDto());
             }
             catch (Exception ex)

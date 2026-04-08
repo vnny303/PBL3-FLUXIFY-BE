@@ -25,5 +25,6 @@ namespace FluxifyAPI.Models
         [JsonIgnore]
         public Tenant Tenant { get; set; } = null!;
         public List<ProductSku> ProductSkus { get; set; } = new List<ProductSku>();
+        public List<ProductImage> ProductImages { get; set; } = new List<ProductImage>();
     }
 }

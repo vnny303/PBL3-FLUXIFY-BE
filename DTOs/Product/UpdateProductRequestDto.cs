@@ -12,5 +12,8 @@ namespace FluxifyAPI.DTOs.Product
         public string? Description { get; set; }
 
         public string? Attributes { get; set; }
+
+        // Nếu truyền Images thì hệ thống sẽ thay thế toàn bộ danh sách ảnh cũ.
+        public List<ProductImageInputDto>? Images { get; set; }
     }
 }

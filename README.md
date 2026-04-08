@@ -78,3 +78,5 @@ Luc_22h/3/4/2026
 2. Bổ sung hàm chuẩn hóa Mapper theo 2 chiều 
 3. Refactor controoler từ JsonElement/string sang DTO + mapper
 
+Luc_10h_8/4/2026
+1. Cập nhật product image

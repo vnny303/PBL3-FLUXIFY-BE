@@ -18,6 +18,8 @@ namespace FluxifyAPI.DTOs.Product
 
         public string? Attributes { get; set; }
 
+        public List<ProductImageDto> Images { get; set; } = new List<ProductImageDto>();
+
         public List<ProductSkuDto> ProductSkus { get; set; } = new List<ProductSkuDto>();
     }
 }
