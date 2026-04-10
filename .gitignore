@@ -9,6 +9,7 @@ obj/
 *.csproj.user
 
 ## Local config
+appsettings.json
 appsettings.Development.json
 
 ## Logs
