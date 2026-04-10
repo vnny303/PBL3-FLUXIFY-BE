@@ -13,12 +13,12 @@ namespace FluxifyAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class SimpleAuthController : ControllerBase
+    public class AuthController : ControllerBase
     {
         private readonly AppDbContext _context;
         private readonly IConfiguration _config;
 
-        public SimpleAuthController(AppDbContext context, IConfiguration config)
+        public AuthController(AppDbContext context, IConfiguration config)
         {
             _context = context;
             _config = config;
@@ -102,18 +102,20 @@ namespace FluxifyAPI.Controllers
         public async Task<IActionResult> LoginMerchant(LoginRequest request)
         {
             var user = await _context.PlatformUsers
+                .Include(u => u.Tenants)
                 .FirstOrDefaultAsync(u => u.Email == request.Email && u.Role == "merchant");
 
             if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
                 return Unauthorized(new { message = "Email hoặc mật khẩu không đúng!" });
 
-            var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.OwnerId == user.Id);
+            // var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.OwnerId == user.Id);
+
 
             var token = GenerateToken([
                 new Claim("userId", user.Id.ToString()),
                 new Claim("email", user.Email),
                 new Claim("role", "merchant"),
-                new Claim("tenantId", tenant?.Id.ToString() ?? "")
+                new Claim("tenantId", user.Tenants.FirstOrDefault()?.Id.ToString() ?? "")
             ]);
 
             return Ok(new
@@ -123,8 +125,7 @@ namespace FluxifyAPI.Controllers
                 userId = user.Id,
                 email = user.Email,
                 role = "merchant",
-                tenantId = tenant?.Id,
-                subdomain = tenant?.Subdomain
+                tenants = user.Tenants.Select(t => new { tenantId = t.Id, subdomain = t.Subdomain })
             });
         }
 
@@ -132,10 +133,10 @@ namespace FluxifyAPI.Controllers
         // CUSTOMER: ĐĂNG KÝ
         // ============================================
         [HttpPost("customer/register")]
-        public async Task<IActionResult> RegisterCustomer(RegisterCustomerRequest request)
+        public async Task<IActionResult> RegisterCustomer([FromQuery] string subdomain, RegisterCustomerRequest request)
         {
             var tenant = await _context.Tenants
-                .FirstOrDefaultAsync(t => t.Subdomain == request.Subdomain.ToLower());
+                .FirstOrDefaultAsync(t => t.Subdomain == subdomain.ToLower());
 
             if (tenant == null)
                 return BadRequest(new { message = "Cửa hàng không tồn tại!" });
@@ -152,7 +153,14 @@ namespace FluxifyAPI.Controllers
                 IsActive = true,
                 CreatedAt = DateTime.Now
             };
+            var cart = new Cart
+            {
+                Id = Guid.NewGuid(),
+                CustomerId = customer.Id,
+                TenantId = tenant.Id,
+            };
             _context.Customers.Add(customer);
+            _context.Carts.Add(cart);
             await _context.SaveChangesAsync();
 
             var token = GenerateToken([

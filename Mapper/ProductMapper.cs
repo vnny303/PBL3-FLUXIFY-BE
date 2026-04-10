@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using FluxifyAPI.DTOs.Product;
 using FluxifyAPI.Models;
 
@@ -52,17 +48,7 @@ namespace FluxifyAPI.Mapper
                 Name = product.Name,
                 Description = product.Description,
                 Attributes = product.Attributes,
-                Images = product.ProductImages
-                    .OrderBy(i => i.SortOrder)
-                    .ThenBy(i => i.CreatedAt)
-                    .Select(i => new ProductImageDto
-                    {
-                        Id = i.Id,
-                        Url = i.Url,
-                        IsPrimary = i.IsPrimary,
-                        SortOrder = i.SortOrder
-                    })
-                    .ToList(),
+                imgUrls = product.imgUrls,
                 ProductSkus = product.ProductSkus.Select(ps => ps.ToProductSkuDto()).ToList()
             };
         }
@@ -79,7 +65,7 @@ namespace FluxifyAPI.Mapper
                 Name = createDto.Name.Trim(),
                 Description = createDto.Description?.Trim(),
                 Attributes = createDto.Attributes,
-                ProductImages = BuildProductImages(createDto.Images, productId),
+                imgUrls = createDto.imgUrls ?? new List<string>(),
                 ProductSkus = createDto.Skus
                     .Select(s => s.ToProductSkuFromCreateDto(productId))
                     .ToList()
@@ -110,9 +96,9 @@ namespace FluxifyAPI.Mapper
                 existingProduct.Attributes = updateDto.Attributes;
             }
 
-            if (updateDto.Images != null)
+            if (updateDto.imgUrls != null)
             {
-                existingProduct.ProductImages = BuildProductImages(updateDto.Images, existingProduct.Id);
+                existingProduct.imgUrls = updateDto.imgUrls;
             }
 
             return existingProduct;

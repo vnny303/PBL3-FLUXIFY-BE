@@ -17,7 +17,7 @@ namespace FluxifyAPI.Models
         public bool? IsActive { get; set; }
         [Column("created_at")]
         public DateTime? CreatedAt { get; set; }
-        public Cart Cart { get; set; } = new Cart();
+        public Cart Cart { get; set; } = null!;
         public List<Order> Orders { get; set; } = new List<Order>();
         [JsonIgnore]
         public Tenant Tenant { get; set; } = null!;

@@ -4,6 +4,7 @@ using FluxifyAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FluxifyAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260410040423_addImgUrlToProductAndSku")]
+    partial class addImgUrlToProductAndSku
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -316,45 +319,6 @@ namespace FluxifyAPI.Migrations
                     b.ToTable("products");
                 });
 
-            modelBuilder.Entity("FluxifyAPI.Models.ProductImage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasColumnName("created_at")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<bool>("IsPrimary")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_primary");
-
-                    b.Property<Guid>("ProductId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("product_id");
-
-                    b.Property<int>("SortOrder")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0)
-                        .HasColumnName("sort_order");
-
-                    b.Property<string>("Url")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("url");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("product_images");
-                });
-
             modelBuilder.Entity("FluxifyAPI.Models.ProductSku", b =>
                 {
                     b.Property<Guid>("Id")
@@ -540,17 +504,6 @@ namespace FluxifyAPI.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("FluxifyAPI.Models.ProductImage", b =>
-                {
-                    b.HasOne("FluxifyAPI.Models.Product", "Product")
-                        .WithMany("ProductImages")
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Product");
-                });
-
             modelBuilder.Entity("FluxifyAPI.Models.ProductSku", b =>
                 {
                     b.HasOne("FluxifyAPI.Models.Product", "Product")
@@ -603,8 +556,6 @@ namespace FluxifyAPI.Migrations
 
             modelBuilder.Entity("FluxifyAPI.Models.Product", b =>
                 {
-                    b.Navigation("ProductImages");
-
                     b.Navigation("ProductSkus");
                 });
 

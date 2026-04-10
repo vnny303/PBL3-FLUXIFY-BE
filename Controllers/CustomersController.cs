@@ -69,6 +69,17 @@ namespace FluxifyAPI.Controllers
         [HttpGet("email/{email}")]
         public async Task<IActionResult> GetCustomerByEmail(Guid tenantId, string email)
         {
+            var userIdClaim = User.FindFirstValue("userId");
+            if (!Guid.TryParse(userIdClaim, out var userId))
+                return Unauthorized(new { message = "Token không hợp lệ" });
+
+            var tenant = await _tenantRepository.GetTenantAsync(tenantId);
+            if (tenant == null)
+                return NotFound(new { message = "Tenant không tồn tại" });
+
+            if (tenant.OwnerId != userId)
+                return Forbid();
+
             var customer = await _customerRepository.GetCustomerByEmailAsync(tenantId, email);
             if (customer == null)
                 return NotFound(new { message = "Customer không tồn tại" });

@@ -73,10 +73,17 @@ Hoa_02/04/2026
 
 \*Database.sql: thêm dữ liệu mới
 
+================================================================================
+
 Luc_22h/3/4/2026
+
 1. Thêm các file Create/Update ở DTO
-2. Bổ sung hàm chuẩn hóa Mapper theo 2 chiều 
+2. Bổ sung hàm chuẩn hóa Mapper theo 2 chiều
 3. Refactor controoler từ JsonElement/string sang DTO + mapper
 
-Luc_10h_8/4/2026
-1. Cập nhật product image
+================================================================================
+
+Hoa_23h/10/04/2026
+
+1. Thêm property List<string> imgUrls vào Model, DTO và Mapper của Product, thêm string imgUrl vào Model, DTO và Mapper của ProductSku
+2. chỉnh endpoint /customer/login và customer/register nhận subdomain từ query (không phải nhận từ body). chi tiết đọc kỹ trong API SPEC
