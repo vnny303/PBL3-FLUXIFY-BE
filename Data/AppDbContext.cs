@@ -24,7 +24,6 @@ public partial class AppDbContext : DbContext
     public DbSet<OrderItem> OrderItems { get; set; }
     public DbSet<PlatformUser> PlatformUsers { get; set; }
     public DbSet<Product> Products { get; set; }
-    public DbSet<ProductImage> ProductImages { get; set; }
     public DbSet<ProductSku> ProductSkus { get; set; }
     public DbSet<Tenant> Tenants { get; set; }
 
@@ -48,9 +47,6 @@ public partial class AppDbContext : DbContext
         // TENANT INDEX (multi-tenant performance)
         modelBuilder.Entity<Product>()
             .HasIndex(p => p.TenantId);
-
-        modelBuilder.Entity<ProductImage>()
-            .HasIndex(pi => pi.ProductId);
 
         modelBuilder.Entity<Category>()
             .HasIndex(c => c.TenantId);
@@ -81,14 +77,6 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<ProductSku>()
             .Property(p => p.Stock)
             .HasDefaultValue(0);
-
-        modelBuilder.Entity<ProductImage>()
-            .Property(pi => pi.SortOrder)
-            .HasDefaultValue(0);
-
-        modelBuilder.Entity<ProductImage>()
-            .Property(pi => pi.CreatedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
 
         // fix multiple cascade paths
         modelBuilder.Entity<Tenant>()
@@ -162,12 +150,6 @@ public partial class AppDbContext : DbContext
             .WithMany(p => p.ProductSkus)
             .HasForeignKey(ps => ps.ProductId)
             .OnDelete(DeleteBehavior.Restrict);
-
-        modelBuilder.Entity<ProductImage>()
-            .HasOne(pi => pi.Product)
-            .WithMany(p => p.ProductImages)
-            .HasForeignKey(pi => pi.ProductId)
-            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<OrderItem>()
             .HasOne(oi => oi.Order)
