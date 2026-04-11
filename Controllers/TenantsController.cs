@@ -5,6 +5,7 @@ using FluxifyAPI.Mapper;
 using FluxifyAPI.Models;
 using System.Security.Claims;
 using FluxifyAPI.Interfaces;
+using FluxifyAPI.Helpers;
 
 namespace FluxifyAPI.Controllers
 {
@@ -25,20 +26,18 @@ namespace FluxifyAPI.Controllers
             return subdomain.Trim().ToLowerInvariant();
         }
 
-        private async Task<Tenant?> GetTenantDetailsAsync(Guid tenantId)
-        {
-            return await _tenantRepository.GetTenantAsync(tenantId);
-        }
-
         // GET: api/tenants/me
         [HttpGet("me")]
-        public async Task<IActionResult> GetMyTenants()
+        public async Task<IActionResult> GetMyTenants([FromQuery] QueryTenant query)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             var userIdClaim = User.FindFirstValue("userId");
             if (!Guid.TryParse(userIdClaim, out var ownerId))
                 return Unauthorized(new { message = "Token không hợp lệ hoặc thiếu userId claim" });
 
-            var tenants = await _tenantRepository.GetTenantsByPlatformUserAsync(ownerId);
+            var tenants = await _tenantRepository.GetTenantsByPlatformUserAsync(ownerId, query);
 
             if (tenants == null || tenants.Count == 0)
                 return NotFound(new { message = "Bạn chưa có tenant nào" });

@@ -87,3 +87,8 @@ Hoa_23h/10/04/2026
 
 1. Thêm property List<string> imgUrls vào Model, DTO và Mapper của Product, thêm string imgUrl vào Model, DTO và Mapper của ProductSku
 2. chỉnh endpoint /customer/login và customer/register nhận subdomain từ query (không phải nhận từ body). chi tiết đọc kỹ trong API SPEC
+
+================================================================================
+
+Hoa_11/04/2026
+Thêm folder Helpers: chứa các class hỗ trợ cho việc filter, sort, pagination,...
