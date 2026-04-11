@@ -81,8 +81,7 @@ namespace FluxifyAPI.Controllers
             var token = GenerateToken([
                 new Claim("userId", user.Id.ToString()),
                 new Claim("email", user.Email),
-                new Claim("role", "merchant"),
-                new Claim("tenantId", tenant.Id.ToString())
+                new Claim("role", "merchant")
             ]);
 
             return Ok(new
@@ -244,19 +243,23 @@ namespace FluxifyAPI.Controllers
         }
         [HttpPut("customer/{customerId}")]
         [Authorize(Roles = "customer")]
-        public async Task<IActionResult> UpdateCustomer([FromQuery] string subdomain, [FromRoute] string customerId, [FromBody] UpdateCustomerRequestDto request)
+        public async Task<IActionResult> UpdateCustomer([FromQuery] string subdomain, [FromBody] UpdateCustomerRequestDto request)
         {
-            var tenant = await _context.Tenants
-                .FirstOrDefaultAsync(t => t.Subdomain == subdomain.ToLower());
+            var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.Subdomain == subdomain.ToLower());
 
-            if (tenant == null)
-                return BadRequest(new { message = "Cửa hàng không tồn tại!" });
+            if (tenant == null) return BadRequest(new { message = "Cửa hàng không tồn tại!" });
 
-            var customer = await _context.Customers.FindAsync(customerId);
+            var userIdFromToken = User.FindFirst("userId")?.Value; 
+            if (string.IsNullOrEmpty(userIdFromToken)) return Unauthorized();
+
+            var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Id.ToString() == userIdFromToken && c.TenantId == tenant.Id);
+
             if (customer == null)
-                return NotFound(new { message = "Khách hàng không tồn tại!" });
+                return NotFound(new { message = "Khách hàng không tồn tại trong hệ thống của cửa hàng này!" });
+
             if (!BCrypt.Net.BCrypt.Verify(request.OldPass, customer.PasswordHash))
                 return BadRequest(new { message = "Mật khẩu cũ không đúng!" });
+
             customer.Email = request.Email;
             customer.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 

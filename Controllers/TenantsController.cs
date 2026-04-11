@@ -1,7 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using FluxifyAPI.Data;
 using FluxifyAPI.DTOs.Tenant;
 using FluxifyAPI.Mapper;
 using FluxifyAPI.Models;
@@ -63,9 +61,9 @@ namespace FluxifyAPI.Controllers
             if (!Guid.TryParse(userIdClaim, out var ownerId))
                 return Unauthorized(new { message = "Token không hợp lệ" });
 
-            if (!await _tenantRepository.TenantExists(id))
-                return NotFound(new { message = "Tenant không tồn tại" });
-            var tenant = await GetTenantDetailsAsync(id);
+            var tenant = await _tenantRepository.GetTenantByOwnerAsync(id, ownerId);
+            if (tenant == null)
+                return NotFound(new { message = "Bạn không có quyền truy cập cửa hàng này hoặc cửa hàng không tồn tại." });
 
             return Ok(tenant.ToTenantDto());
         }
@@ -117,20 +115,20 @@ namespace FluxifyAPI.Controllers
             if (!Guid.TryParse(userIdClaim, out var ownerId))
                 return Unauthorized(new { message = "Token không hợp lệ" });
 
-            var tenant = await _tenantRepository.GetTenantAsync(id);
+            var tenant = await _tenantRepository.GetTenantByOwnerAsync(id, ownerId);
             if (tenant == null)
-                return NotFound(new { message = "Tenant không tồn tại" });
+            {
+                if (await _tenantRepository.TenantExists(id))
+                    return Forbid();
 
-            if (!await _tenantRepository.IsTenantOwner(id, ownerId))
-                return Forbid();
-
-            if (!await _tenantRepository.TenantExists(id))
                 return NotFound(new { message = "Tenant không tồn tại" });
+            }
+
             if (!string.IsNullOrWhiteSpace(tenantDto.Subdomain))
             {
                 var normalizedSubdomain = NormalizeSubdomain(tenantDto.Subdomain);
 
-                if (await _tenantRepository.SubdomainExists(normalizedSubdomain))
+                if (await _tenantRepository.SubdomainExists(normalizedSubdomain, id))
                     return Conflict(new { message = "Subdomain đã tồn tại" });
 
                 tenant.Subdomain = normalizedSubdomain;
@@ -142,7 +140,7 @@ namespace FluxifyAPI.Controllers
             if (tenantDto.IsActive.HasValue)
                 tenant.IsActive = tenantDto.IsActive;
 
-            var updatedTenant = await _tenantRepository.UpdateTenantAsync(id, tenant);
+            var updatedTenant = await _tenantRepository.UpdateTenantAsync(tenant);
 
             return Ok(updatedTenant.ToOverallTenantDto());
         }
