@@ -5,6 +5,8 @@ using Scalar.AspNetCore;
 using FluxifyAPI.Data;
 using FluxifyAPI.Interfaces;
 using FluxifyAPI.Repository;
+using FluxifyAPI.Services.Implementations;
+using FluxifyAPI.Services.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using System.Text.Json;
@@ -39,6 +41,10 @@ builder.Services.AddScoped<IPlatformUserRepository, PlatformUserRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductSkuRepository, ProductSkuRepository>();
 builder.Services.AddScoped<ITenantRepository, TenantRepository>();
+
+// Services
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ITenantService, TenantService>();
 
 // JWT Authentication
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();

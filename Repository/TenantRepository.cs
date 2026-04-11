@@ -42,11 +42,17 @@ namespace FluxifyAPI.Repository
         {
             var tenant = _context.Tenants
                 .Where(t => t.OwnerId == platformUserId)
+                .AsNoTracking()
                 .AsQueryable();
 
             var searchTerm = query.NormalizedSearchTerm;
             if (!string.IsNullOrEmpty(searchTerm))
-                tenant = tenant.Where(t => t.StoreName.Contains(searchTerm) || t.Subdomain.Contains(searchTerm) || t.Id.ToString().Contains(searchTerm));
+            {
+                if (Guid.TryParse(searchTerm, out var tenantId))
+                    tenant = tenant.Where(t => t.StoreName.Contains(searchTerm) || t.Subdomain.Contains(searchTerm) || t.Id == tenantId);
+                else
+                    tenant = tenant.Where(t => t.StoreName.Contains(searchTerm) || t.Subdomain.Contains(searchTerm));
+            }
 
             if (!string.IsNullOrWhiteSpace(query.StoreName))
             {
@@ -63,19 +69,20 @@ namespace FluxifyAPI.Repository
             if (query.IsActive.HasValue)
                 tenant = tenant.Where(t => t.IsActive == query.IsActive.Value);
 
-            if (!string.IsNullOrEmpty(query.SortBy))
-            {
-                if (query.SortBy.Equals("storeName", StringComparison.OrdinalIgnoreCase) || query.SortBy.Equals("store_name", StringComparison.OrdinalIgnoreCase))
-                    tenant = query.NormalizedIsDescending ? tenant.OrderByDescending(t => t.StoreName) : tenant.OrderBy(t => t.StoreName);
-                else if (query.SortBy.Equals("subdomain", StringComparison.OrdinalIgnoreCase))
-                    tenant = query.NormalizedIsDescending ? tenant.OrderByDescending(t => t.Subdomain) : tenant.OrderBy(t => t.Subdomain);
-                else if (query.SortBy.Equals("isActive", StringComparison.OrdinalIgnoreCase) || query.SortBy.Equals("is_active", StringComparison.OrdinalIgnoreCase))
-                    tenant = query.NormalizedIsDescending ? tenant.OrderByDescending(t => t.IsActive) : tenant.OrderBy(t => t.IsActive);
-                else if (query.SortBy.Equals("id", StringComparison.OrdinalIgnoreCase))
-                    tenant = query.NormalizedIsDescending ? tenant.OrderByDescending(t => t.Id) : tenant.OrderBy(t => t.Id);
-            }
+            var sortBy = query.SortBy?.Trim();
+            var isDescending = query.NormalizedIsDescending;
+            var normalizedSortBy = sortBy?.ToLowerInvariant();
+
+            if (normalizedSortBy == "storename" || normalizedSortBy == "store_name")
+                tenant = isDescending ? tenant.OrderByDescending(t => t.StoreName) : tenant.OrderBy(t => t.StoreName);
+            else if (normalizedSortBy == "subdomain")
+                tenant = isDescending ? tenant.OrderByDescending(t => t.Subdomain) : tenant.OrderBy(t => t.Subdomain);
+            else if (normalizedSortBy == "isactive" || normalizedSortBy == "is_active")
+                tenant = isDescending ? tenant.OrderByDescending(t => t.IsActive) : tenant.OrderBy(t => t.IsActive);
+            else if (normalizedSortBy == "id")
+                tenant = isDescending ? tenant.OrderByDescending(t => t.Id) : tenant.OrderBy(t => t.Id);
             else
-                tenant = tenant.OrderBy(t => t.Id); // Mặc định sắp xếp theo Id nếu sortBy không hợp lệ
+                tenant = tenant.OrderBy(t => t.Id);
 
             var pageNumber = query.NormalizedPageNumber;
             var pageSize = query.NormalizedPageSize;

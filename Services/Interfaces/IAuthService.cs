@@ -1,0 +1,15 @@
+using FluxifyAPI.DTOs;
+using FluxifyAPI.DTOs.Customer;
+using FluxifyAPI.Services.Common;
+
+namespace FluxifyAPI.Services.Interfaces
+{
+    public interface IAuthService
+    {
+        Task<ServiceResult<object>> RegisterMerchantAsync(RegisterMerchantRequest request);
+        Task<ServiceResult<object>> LoginMerchantAsync(LoginRequest request);
+        Task<ServiceResult<object>> RegisterCustomerAsync(string subdomain, RegisterCustomerRequest request);
+        Task<ServiceResult<object>> LoginCustomerAsync(string subdomain, LoginRequest request);
+        Task<ServiceResult<object>> UpdateCustomerAsync(string subdomain, string userIdFromToken, UpdateCustomerRequestDto request);
+    }
+}

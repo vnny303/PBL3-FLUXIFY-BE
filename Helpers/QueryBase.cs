@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace FluxifyAPI.Helpers
 {
-    public class QueryTenant
+    public class QueryBase
     {
         [FromQuery(Name = "page")]
         [Range(1, int.MaxValue)]
@@ -16,20 +16,11 @@ namespace FluxifyAPI.Helpers
         [FromQuery(Name = "sortBy")]
         public string? SortBy { get; set; }
 
-        [FromQuery(Name = "search")]
-        public string? SearchTerm { get; set; }
-
         [FromQuery(Name = "sortDir")]
         public string? SortDirection { get; set; }
 
-        [FromQuery(Name = "isActive")]
-        public bool? IsActive { get; set; }
-
-        [FromQuery(Name = "storeName")]
-        public string? StoreName { get; set; }
-
-        [FromQuery(Name = "subdomain")]
-        public string? Subdomain { get; set; }
+        [FromQuery(Name = "search")]
+        public string? SearchTerm { get; set; }
 
         public int NormalizedPageNumber => Page > 0 ? Page : 1;
 

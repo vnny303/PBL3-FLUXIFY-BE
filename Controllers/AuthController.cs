@@ -1,15 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using FluxifyAPI.Data;
 using FluxifyAPI.DTOs;
-using FluxifyAPI.Models;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 using FluxifyAPI.DTOs.Customer;
-using FluxifyAPI.Mapper;
+using FluxifyAPI.Services.Interfaces;
 
 namespace FluxifyAPI.Controllers
 {
@@ -17,30 +11,11 @@ namespace FluxifyAPI.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-        private readonly AppDbContext _context;
-        private readonly IConfiguration _config;
+        private readonly IAuthService _authService;
 
-        public AuthController(AppDbContext context, IConfiguration config)
+        public AuthController(IAuthService authService)
         {
-            _context = context;
-            _config = config;
-        }
-
-        private string GenerateToken(IEnumerable<Claim> claims)
-        {
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-            var expiry = DateTime.UtcNow.AddDays(int.Parse(_config["Jwt:ExpiryDays"]!));
-
-            var token = new JwtSecurityToken(
-                issuer: _config["Jwt:Issuer"],
-                audience: _config["Jwt:Audience"],
-                claims: claims,
-                expires: expiry,
-                signingCredentials: creds
-            );
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            _authService = authService;
         }
 
         // ============================================
@@ -49,51 +24,11 @@ namespace FluxifyAPI.Controllers
         [HttpPost("merchant/register")]
         public async Task<IActionResult> RegisterMerchant(RegisterMerchantRequest request)
         {
-            if (await _context.PlatformUsers.AnyAsync(u => u.Email == request.Email))
-                return BadRequest(new { message = "Email đã tồn tại!" });
+            var result = await _authService.RegisterMerchantAsync(request);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
 
-            if (await _context.Tenants.AnyAsync(t => t.Subdomain == request.Subdomain.ToLower()))
-                return BadRequest(new { message = "Tên cửa hàng đã có người dùng!" });
-
-            var user = new PlatformUser
-            {
-                Id = Guid.NewGuid(),
-                Fullname = request.FullName,
-                Email = request.Email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                Role = "merchant",
-                IsActive = true,
-                CreatedAt = DateTime.Now
-            };
-            _context.PlatformUsers.Add(user);
-
-            var tenant = new Tenant
-            {
-                Id = Guid.NewGuid(),
-                OwnerId = user.Id,
-                Subdomain = request.Subdomain.ToLower(),
-                StoreName = request.StoreName,
-                IsActive = true
-            };
-            _context.Tenants.Add(tenant);
-            await _context.SaveChangesAsync();
-
-            var token = GenerateToken([
-                new Claim("userId", user.Id.ToString()),
-                new Claim("email", user.Email),
-                new Claim("role", "merchant")
-            ]);
-
-            return Ok(new
-            {
-                message = "Đăng ký thành công!",
-                token,
-                userId = user.Id,
-                email = user.Email,
-                role = "merchant",
-                tenantId = tenant.Id,
-                subdomain = tenant.Subdomain
-            });
+            return StatusCode(result.StatusCode, result.Data);
         }
 
         // ============================================
@@ -102,32 +37,11 @@ namespace FluxifyAPI.Controllers
         [HttpPost("merchant/login")]
         public async Task<IActionResult> LoginMerchant(LoginRequest request)
         {
-            var user = await _context.PlatformUsers
-                .Include(u => u.Tenants)
-                .FirstOrDefaultAsync(u => u.Email == request.Email && u.Role == "merchant");
+            var result = await _authService.LoginMerchantAsync(request);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
 
-            if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
-                return Unauthorized(new { message = "Email hoặc mật khẩu không đúng!" });
-
-            var token = GenerateToken([
-                new Claim("userId", user.Id.ToString()),
-                new Claim("email", user.Email),
-                new Claim("role", "merchant")
-            ]);
-
-            return Ok(new
-            {
-                message = "Đăng nhập thành công!",
-                token,
-                userId = user.Id,
-                email = user.Email,
-                role = "merchant",
-                tenants = user.Tenants.Select(t => new
-                {
-                    tenantId = t.Id,
-                    subdomain = t.Subdomain
-                })
-            });
+            return StatusCode(result.StatusCode, result.Data);
         }
 
         // ============================================
@@ -136,52 +50,11 @@ namespace FluxifyAPI.Controllers
         [HttpPost("customer/register")]
         public async Task<IActionResult> RegisterCustomer([FromQuery] string subdomain, RegisterCustomerRequest request)
         {
-            var tenant = await _context.Tenants
-                .FirstOrDefaultAsync(t => t.Subdomain == subdomain.ToLower());
+            var result = await _authService.RegisterCustomerAsync(subdomain, request);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
 
-            if (tenant == null)
-                return BadRequest(new { message = "Cửa hàng không tồn tại!" });
-
-            if (await _context.Customers.AnyAsync(c => c.TenantId == tenant.Id && c.Email == request.Email))
-                return BadRequest(new { message = "Email đã được đăng ký!" });
-
-            var customer = new Customer
-            {
-                Id = Guid.NewGuid(),
-                TenantId = tenant.Id,
-                Email = request.Email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                IsActive = true,
-                CreatedAt = DateTime.Now
-            };
-            _context.Customers.Add(customer);
-
-            var cart = new Cart
-            {
-                Id = Guid.NewGuid(),
-                CustomerId = customer.Id,
-                TenantId = tenant.Id,
-            };
-            _context.Carts.Add(cart);
-            await _context.SaveChangesAsync();
-
-            var token = GenerateToken([
-                new Claim("userId", customer.Id.ToString()),
-                new Claim("email", customer.Email),
-                new Claim("role", "customer"),
-                new Claim("tenantId", tenant.Id.ToString())
-            ]);
-
-            return Ok(new
-            {
-                message = "Đăng ký thành công!",
-                token,
-                userId = customer.Id,
-                email = customer.Email,
-                role = "customer",
-                tenantId = tenant.Id,
-                subdomain = tenant.Subdomain
-            });
+            return StatusCode(result.StatusCode, result.Data);
         }
 
         // ============================================
@@ -190,35 +63,11 @@ namespace FluxifyAPI.Controllers
         [HttpPost("customer/login")]
         public async Task<IActionResult> LoginCustomer([FromQuery] string subdomain, LoginRequest request)
         {
-            var tenant = await _context.Tenants
-                .FirstOrDefaultAsync(t => t.Subdomain == subdomain.ToLower());
+            var result = await _authService.LoginCustomerAsync(subdomain, request);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
 
-            if (tenant == null)
-                return BadRequest(new { message = "Cửa hàng không tồn tại!" });
-
-            var customer = await _context.Customers
-                .FirstOrDefaultAsync(c => c.TenantId == tenant.Id && c.Email == request.Email);
-
-            if (customer == null || !BCrypt.Net.BCrypt.Verify(request.Password, customer.PasswordHash))
-                return Unauthorized(new { message = "Email hoặc mật khẩu không đúng!" });
-
-            var token = GenerateToken([
-                new Claim("userId", customer.Id.ToString()),
-                new Claim("email", customer.Email),
-                new Claim("role", "customer"),
-                new Claim("tenantId", tenant.Id.ToString())
-            ]);
-
-            return Ok(new
-            {
-                message = "Đăng nhập thành công!",
-                token,
-                userId = customer.Id,
-                email = customer.Email,
-                role = "customer",
-                tenantId = tenant.Id,
-                subdomain = tenant.Subdomain
-            });
+            return StatusCode(result.StatusCode, result.Data);
         }
 
         // ============================================
@@ -245,33 +94,15 @@ namespace FluxifyAPI.Controllers
         [Authorize(Roles = "customer")]
         public async Task<IActionResult> UpdateCustomer([FromQuery] string subdomain, [FromBody] UpdateCustomerRequestDto request)
         {
-            var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.Subdomain == subdomain.ToLower());
+            var userIdFromToken = User.FindFirst("userId")?.Value;
+            if (string.IsNullOrEmpty(userIdFromToken))
+                return Unauthorized(new { message = "Token không hợp lệ" });
 
-            if (tenant == null) return BadRequest(new { message = "Cửa hàng không tồn tại!" });
+            var result = await _authService.UpdateCustomerAsync(subdomain, userIdFromToken, request);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
 
-            var userIdFromToken = User.FindFirst("userId")?.Value; 
-            if (string.IsNullOrEmpty(userIdFromToken)) return Unauthorized();
-
-            var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Id.ToString() == userIdFromToken && c.TenantId == tenant.Id);
-
-            if (customer == null)
-                return NotFound(new { message = "Khách hàng không tồn tại trong hệ thống của cửa hàng này!" });
-
-            if (!BCrypt.Net.BCrypt.Verify(request.OldPass, customer.PasswordHash))
-                return BadRequest(new { message = "Mật khẩu cũ không đúng!" });
-
-            customer.Email = request.Email;
-            customer.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
-
-            await _context.SaveChangesAsync();
-            return Ok(new
-            {
-                message = "Cập nhật thông tin thành công!",
-                userId = customer.Id,
-                email = customer.Email,
-                role = "customer",
-                tenantId = customer.TenantId
-            });
+            return StatusCode(result.StatusCode, result.Data);
         }
 
         // ============================================

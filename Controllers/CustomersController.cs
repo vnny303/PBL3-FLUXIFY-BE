@@ -87,6 +87,17 @@ namespace FluxifyAPI.Controllers
         [HttpGet("cart/{cartId}")]
         public async Task<IActionResult> GetCustomerByCart(Guid tenantId, Guid cartId)
         {
+            var userIdClaim = User.FindFirstValue("userId");
+            if (!Guid.TryParse(userIdClaim, out var userId))
+                return Unauthorized(new { message = "Token không hợp lệ" });
+
+            var tenant = await _tenantRepository.GetTenantAsync(tenantId);
+            if (tenant == null)
+                return NotFound(new { message = "Tenant không tồn tại" });
+
+            if (tenant.OwnerId != userId)
+                return Forbid();
+
             var customer = await _customerRepository.GetCustomerByCartAsync(tenantId, cartId);
             if (customer == null)
                 return NotFound(new { message = "Customer không tồn tại" });
@@ -97,9 +108,16 @@ namespace FluxifyAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateCustomer(Guid tenantId, [FromBody] CreateCustomerRequestDto customerDto)
         {
+            var userIdClaim = User.FindFirstValue("userId");
+            if (!Guid.TryParse(userIdClaim, out var userId))
+                return Unauthorized(new { message = "Token không hợp lệ" });
+
             var tenant = await _tenantRepository.GetTenantAsync(tenantId);
             if (tenant == null)
                 return NotFound(new { message = "Tenant không tồn tại" });
+
+            if (tenant.OwnerId != userId)
+                return Forbid();
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
