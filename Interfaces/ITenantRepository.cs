@@ -11,8 +11,12 @@ namespace FluxifyAPI.Interfaces
         public Task<Tenant?> GetTenantAsync(Guid tenantId);
         public Task<Tenant?> GetTenantBySubdomainAsync(string subdomain);
         public Task<List<Tenant>?> GetTenantsByPlatformUserAsync(Guid platformUserId);
-        public Task<Tenant> CreateTenantAsync(Guid platformUserId, string name, string description);
-        public Task<Tenant?> UpdateTenantAsync(Guid tenantId, string name, string description);
+        public Task<Tenant> CreateTenantAsync(Tenant tenantModel);
+        public Task<Tenant?> UpdateTenantAsync(Guid tenantId, Tenant tenant);
         public Task<Tenant?> DeleteTenantAsync(Guid tenantId);
+        public Task<bool> TenantExists(string subdomain);
+        public Task<bool> TenantExists(Guid tenantId);
+        public Task<bool> IsTenantOwner(Guid tenantId, Guid platformUserId);
+        public Task<bool> SubdomainExists(string subdomain);
     }
 }

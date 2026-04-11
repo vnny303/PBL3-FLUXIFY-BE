@@ -19,6 +19,7 @@ namespace FluxifyAPI.Models
         [Column("attributes")]
         // Định nghĩa các nhóm thuộc tính của sản phẩm dạng JSON
         // Ví dụ: {"color": ["Đỏ","Xanh","Trắng"], "size": ["S","M","L","XL"]}
+        // public Dictionary<string, List<string>> Attributes { get; set; } = new Dictionary<string, List<string>>();
         public string? Attributes { get; set; }
         [Column("img_urls")]
         public List<string> imgUrls { get; set; } = new List<string>();

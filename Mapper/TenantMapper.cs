@@ -13,6 +13,17 @@ namespace FluxifyAPI.Mapper
 {
     public static class TenantMapper
     {
+        public static object ToOverallTenantDto(this Tenant tenant)
+        {
+            return new
+            {
+                Id = tenant.Id,
+                OwnerId = tenant.OwnerId,
+                Subdomain = tenant.Subdomain,
+                StoreName = tenant.StoreName,
+                IsActive = tenant.IsActive
+            };
+        }
         public static TenantDto ToTenantDto(this Tenant tenant)
         {
             return new TenantDto

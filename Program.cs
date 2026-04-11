@@ -96,7 +96,7 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.MapScalarApiReference(options => options
-        .WithTitle("ShopifyClone API")
+        .WithTitle("Fluxify API")
         .WithDefaultHttpClient(ScalarTarget.JavaScript, ScalarClient.Fetch)
         .WithHttpBearerAuthentication(bearer => bearer.Token = ""));
 }

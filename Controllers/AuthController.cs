@@ -8,6 +8,8 @@ using FluxifyAPI.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using FluxifyAPI.DTOs.Customer;
+using FluxifyAPI.Mapper;
 
 namespace FluxifyAPI.Controllers
 {
@@ -108,14 +110,10 @@ namespace FluxifyAPI.Controllers
             if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
                 return Unauthorized(new { message = "Email hoặc mật khẩu không đúng!" });
 
-            // var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.OwnerId == user.Id);
-
-
             var token = GenerateToken([
                 new Claim("userId", user.Id.ToString()),
                 new Claim("email", user.Email),
-                new Claim("role", "merchant"),
-                new Claim("tenantId", user.Tenants.FirstOrDefault()?.Id.ToString() ?? "")
+                new Claim("role", "merchant")
             ]);
 
             return Ok(new
@@ -125,7 +123,11 @@ namespace FluxifyAPI.Controllers
                 userId = user.Id,
                 email = user.Email,
                 role = "merchant",
-                tenants = user.Tenants.Select(t => new { tenantId = t.Id, subdomain = t.Subdomain })
+                tenants = user.Tenants.Select(t => new
+                {
+                    tenantId = t.Id,
+                    subdomain = t.Subdomain
+                })
             });
         }
 
@@ -153,13 +155,14 @@ namespace FluxifyAPI.Controllers
                 IsActive = true,
                 CreatedAt = DateTime.Now
             };
+            _context.Customers.Add(customer);
+
             var cart = new Cart
             {
                 Id = Guid.NewGuid(),
                 CustomerId = customer.Id,
                 TenantId = tenant.Id,
             };
-            _context.Customers.Add(customer);
             _context.Carts.Add(cart);
             await _context.SaveChangesAsync();
 
@@ -220,6 +223,55 @@ namespace FluxifyAPI.Controllers
         }
 
         // ============================================
+        // XEM THÔNG TIN USER ĐANG ĐĂNG NHẬP (yêu cầu JWT)
+        // ============================================
+        [HttpGet("me")]
+        [Authorize]
+        public IActionResult GetCurrentUser()
+        {
+            var userId = User.FindFirstValue("userId");
+            var email = User.FindFirstValue("email");
+            var role = User.FindFirstValue("role");
+            var tenantId = User.FindFirstValue("tenantId");
+
+            return Ok(new
+            {
+                userId,
+                email,
+                role,
+                tenantId
+            });
+        }
+        [HttpPut("customer/{customerId}")]
+        [Authorize(Roles = "customer")]
+        public async Task<IActionResult> UpdateCustomer([FromQuery] string subdomain, [FromRoute] string customerId, [FromBody] UpdateCustomerRequestDto request)
+        {
+            var tenant = await _context.Tenants
+                .FirstOrDefaultAsync(t => t.Subdomain == subdomain.ToLower());
+
+            if (tenant == null)
+                return BadRequest(new { message = "Cửa hàng không tồn tại!" });
+
+            var customer = await _context.Customers.FindAsync(customerId);
+            if (customer == null)
+                return NotFound(new { message = "Khách hàng không tồn tại!" });
+            if (!BCrypt.Net.BCrypt.Verify(request.OldPass, customer.PasswordHash))
+                return BadRequest(new { message = "Mật khẩu cũ không đúng!" });
+            customer.Email = request.Email;
+            customer.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+
+            await _context.SaveChangesAsync();
+            return Ok(new
+            {
+                message = "Cập nhật thông tin thành công!",
+                userId = customer.Id,
+                email = customer.Email,
+                role = "customer",
+                tenantId = customer.TenantId
+            });
+        }
+
+        // ============================================
         // ĐĂNG XUẤT
         // ============================================
         // JWT là stateless, server không lưu token nên không thể xóa được.
@@ -234,21 +286,6 @@ namespace FluxifyAPI.Controllers
                 caption = "Đăng xuất thành công!",
                 message = "Xử lý phần này bên frontend nhé (xóa tokens)"
             });
-        }
-
-        // ============================================
-        // XEM THÔNG TIN USER ĐANG ĐĂNG NHẬP (yêu cầu JWT)
-        // ============================================
-        [HttpGet("me")]
-        [Authorize]
-        public IActionResult GetCurrentUser()
-        {
-            var userId = User.FindFirstValue("userId");
-            var email = User.FindFirstValue("email");
-            var role = User.FindFirstValue("role");
-            var tenantId = User.FindFirstValue("tenantId");
-
-            return Ok(new { userId, email, role, tenantId });
         }
     }
 }

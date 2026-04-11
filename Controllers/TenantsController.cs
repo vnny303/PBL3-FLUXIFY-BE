@@ -6,19 +6,20 @@ using FluxifyAPI.DTOs.Tenant;
 using FluxifyAPI.Mapper;
 using FluxifyAPI.Models;
 using System.Security.Claims;
+using FluxifyAPI.Interfaces;
 
 namespace FluxifyAPI.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "merchant")]
     [Route("api/[controller]")]
     [ApiController]
     public class TenantsController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly ITenantRepository _tenantRepository;
 
-        public TenantsController(AppDbContext context)
+        public TenantsController(ITenantRepository tenantRepository)
         {
-            _context = context;
+            _tenantRepository = tenantRepository;
         }
 
         private static string NormalizeSubdomain(string subdomain)
@@ -28,11 +29,7 @@ namespace FluxifyAPI.Controllers
 
         private async Task<Tenant?> GetTenantDetailsAsync(Guid tenantId)
         {
-            return await _context.Tenants
-                .Include(t => t.Categories)
-                .Include(t => t.Customers)
-                .Include(t => t.Orders)
-                .FirstOrDefaultAsync(t => t.Id == tenantId);
+            return await _tenantRepository.GetTenantAsync(tenantId);
         }
 
         // GET: api/tenants/me
@@ -43,56 +40,47 @@ namespace FluxifyAPI.Controllers
             if (!Guid.TryParse(userIdClaim, out var ownerId))
                 return Unauthorized(new { message = "Token không hợp lệ hoặc thiếu userId claim" });
 
-            var tenants = await _context.Tenants
-                .Include(t => t.Categories)
-                .Include(t => t.Customers)
-                .Include(t => t.Orders)
-                .Where(t => t.OwnerId == ownerId)
-                .ToListAsync();
+            var tenants = await _tenantRepository.GetTenantsByPlatformUserAsync(ownerId);
 
-            return Ok(tenants.Select(t => t.ToTenantDto()));
+            if (tenants == null || tenants.Count == 0)
+                return NotFound(new { message = "Bạn chưa có tenant nào" });
+            return Ok(tenants.Select(t => t.ToOverallTenantDto()));
         }
-        // GET: api/tenants
-        [HttpGet]
-        public async Task<IActionResult> GetTenants()
-        {
-            var tenants = await _context.Tenants
-                .Include(t => t.Owner)
-                .ToListAsync();
+        // // GET: api/tenants
+        // [HttpGet]
+        // public async Task<IActionResult> GetTenants()
+        // {
+        //     var tenants = await _tenantRepository.GetTenantsByPlatformUserAsync(Guid.Empty); // Lấy tất cả tenant mà không phân biệt chủ sở hữu
 
-            return Ok(tenants.Select(t => t.ToTenantDto()));
-        }
+        //     return Ok(tenants.Select(t => t.ToTenantDto()));
+        // }
 
         // GET: api/tenants/{id}
         [HttpGet("{id}")]
         public async Task<ActionResult<TenantDto>> GetTenant(Guid id)
         {
-            var tenant = await GetTenantDetailsAsync(id);
+            var userIdClaim = User.FindFirstValue("userId");
+            if (!Guid.TryParse(userIdClaim, out var ownerId))
+                return Unauthorized(new { message = "Token không hợp lệ" });
 
-            if (tenant == null)
-            {
-                return NotFound();
-            }
+            if (!await _tenantRepository.TenantExists(id))
+                return NotFound(new { message = "Tenant không tồn tại" });
+            var tenant = await GetTenantDetailsAsync(id);
 
             return Ok(tenant.ToTenantDto());
         }
 
         // GET: api/tenants/subdomain/{subdomain}
+        [AllowAnonymous]
         [HttpGet("subdomain/{subdomain}")]
-        public async Task<ActionResult<TenantDto>> GetTenantBySubdomain(string subdomain)
+        public async Task<ActionResult<TenantDto>> GetTenantBySubdomain([FromRoute] string subdomain)
         {
             var normalizedSubdomain = NormalizeSubdomain(subdomain);
 
-            var tenant = await _context.Tenants
-                .Include(t => t.Categories)
-                .Include(t => t.Customers)
-                .Include(t => t.Orders)
-                .FirstOrDefaultAsync(t => t.Subdomain == normalizedSubdomain);
+            var tenant = await _tenantRepository.GetTenantBySubdomainAsync(normalizedSubdomain);
 
             if (tenant == null)
-            {
-                return NotFound();
-            }
+                return NotFound(new { message = "Tenant không tồn tại" });
 
             return Ok(tenant.ToTenantDto());
         }
@@ -110,22 +98,12 @@ namespace FluxifyAPI.Controllers
 
             var normalizedSubdomain = NormalizeSubdomain(tenantDto.Subdomain);
 
-            if (await _context.Tenants.AnyAsync(t => t.Subdomain == normalizedSubdomain))
+            if (await _tenantRepository.GetTenantBySubdomainAsync(normalizedSubdomain) != null)
                 return Conflict(new { message = "Subdomain đã tồn tại" });
+            var tenant = tenantDto.ToTenantFromCreateDto(ownerId);
 
-            var tenant = new Tenant
-            {
-                Id = Guid.NewGuid(),
-                OwnerId = ownerId,
-                Subdomain = normalizedSubdomain,
-                StoreName = tenantDto.StoreName.Trim(),
-                IsActive = tenantDto.IsActive ?? true
-            };
-
-            await _context.Tenants.AddAsync(tenant);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetTenant), new { id = tenant.Id }, tenant.ToTenantDto());
+            await _tenantRepository.CreateTenantAsync(tenant);
+            return CreatedAtAction(nameof(GetTenant), new { id = tenant.Id }, tenant.ToOverallTenantDto());
         }
 
         // PUT: api/tenants/{id}
@@ -139,20 +117,20 @@ namespace FluxifyAPI.Controllers
             if (!Guid.TryParse(userIdClaim, out var ownerId))
                 return Unauthorized(new { message = "Token không hợp lệ" });
 
-            var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.Id == id);
+            var tenant = await _tenantRepository.GetTenantAsync(id);
             if (tenant == null)
                 return NotFound(new { message = "Tenant không tồn tại" });
 
-            if (tenant.OwnerId != ownerId)
+            if (!await _tenantRepository.IsTenantOwner(id, ownerId))
                 return Forbid();
 
+            if (!await _tenantRepository.TenantExists(id))
+                return NotFound(new { message = "Tenant không tồn tại" });
             if (!string.IsNullOrWhiteSpace(tenantDto.Subdomain))
             {
                 var normalizedSubdomain = NormalizeSubdomain(tenantDto.Subdomain);
-                var isDuplicateSubdomain = await _context.Tenants
-                    .AnyAsync(t => t.Subdomain == normalizedSubdomain && t.Id != id);
 
-                if (isDuplicateSubdomain)
+                if (await _tenantRepository.SubdomainExists(normalizedSubdomain))
                     return Conflict(new { message = "Subdomain đã tồn tại" });
 
                 tenant.Subdomain = normalizedSubdomain;
@@ -164,13 +142,9 @@ namespace FluxifyAPI.Controllers
             if (tenantDto.IsActive.HasValue)
                 tenant.IsActive = tenantDto.IsActive;
 
-            await _context.SaveChangesAsync();
+            var updatedTenant = await _tenantRepository.UpdateTenantAsync(id, tenant);
 
-            var updatedTenant = await GetTenantDetailsAsync(id);
-            if (updatedTenant == null)
-                return NotFound(new { message = "Tenant không tồn tại" });
-
-            return Ok(updatedTenant.ToTenantDto());
+            return Ok(updatedTenant.ToOverallTenantDto());
         }
 
         // DELETE: api/tenants/{id}
@@ -180,20 +154,18 @@ namespace FluxifyAPI.Controllers
             var userIdClaim = User.FindFirstValue("userId");
             if (!Guid.TryParse(userIdClaim, out var ownerId))
                 return Unauthorized(new { message = "Token không hợp lệ" });
+            if (!await _tenantRepository.TenantExists(id))
+                return NotFound(new { message = "Tenant không tồn tại" });
 
-            var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.Id == id);
-            if (tenant == null)
-            {
-                return NotFound();
-            }
-
-            if (tenant.OwnerId != ownerId)
+            if (!await _tenantRepository.IsTenantOwner(id, ownerId))
                 return Forbid();
 
-            _context.Tenants.Remove(tenant);
-            await _context.SaveChangesAsync();
+            var tenant = await _tenantRepository.DeleteTenantAsync(id);
 
-            return NoContent();
+            return Ok(new
+            {
+                message = "Xóa tenant thành công",
+            });
         }
     }
 }

@@ -35,49 +35,58 @@ namespace FluxifyAPI.Repository
                 .ToListAsync();
         }
 
-        public async Task<Tenant> CreateTenantAsync(Guid platformUserId, string name, string description)
+        public async Task<Tenant> CreateTenantAsync(Tenant tenantModel)
         {
-            var tenant = new Tenant
-            {
-                Id = Guid.NewGuid(),
-                OwnerId = platformUserId,
-                StoreName = name,
-                Subdomain = description.Trim().ToLowerInvariant(),
-                IsActive = true
-            };
-
-            await _context.Tenants.AddAsync(tenant);
+            await _context.Tenants.AddAsync(tenantModel);
             await _context.SaveChangesAsync();
 
-            return tenant;
+            return tenantModel;
         }
 
-        public async Task<Tenant?> UpdateTenantAsync(Guid tenantId, string name, string description)
+        public async Task<Tenant?> UpdateTenantAsync(Guid tenantId, Tenant tenant)
         {
-            var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId);
-            if (tenant == null)
+            var existingTenant = await _context.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId);
+            if (existingTenant == null)
             {
                 return null;
             }
 
-            tenant.StoreName = name;
-            tenant.Subdomain = description.Trim().ToLowerInvariant();
+            existingTenant.StoreName = tenant.StoreName;
+            existingTenant.Subdomain = tenant.Subdomain;
 
             await _context.SaveChangesAsync();
-            return tenant;
+            return existingTenant;
         }
 
         public async Task<Tenant?> DeleteTenantAsync(Guid tenantId)
         {
-            var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId);
-            if (tenant == null)
-            {
+            var tenantModel = await _context.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId);
+            if (tenantModel == null)
                 return null;
-            }
 
-            _context.Tenants.Remove(tenant);
+            _context.Tenants.Remove(tenantModel);
             await _context.SaveChangesAsync();
-            return tenant;
+            return tenantModel;
+        }
+
+        public Task<bool> TenantExists(string subdomain)
+        {
+            return _context.Tenants.AnyAsync(t => t.Subdomain == subdomain);
+        }
+
+        public Task<bool> TenantExists(Guid tenantId)
+        {
+            return _context.Tenants.AnyAsync(t => t.Id == tenantId);
+        }
+
+        public Task<bool> IsTenantOwner(Guid tenantId, Guid platformUserId)
+        {
+            return _context.Tenants.AnyAsync(t => t.Id == tenantId && t.OwnerId == platformUserId);
+        }
+
+        public Task<bool> SubdomainExists(string subdomain)
+        {
+            return _context.Tenants.AnyAsync(t => t.Subdomain == subdomain);
         }
     }
 }

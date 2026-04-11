@@ -17,6 +17,7 @@ namespace FluxifyAPI.Models
         [Column("attributes")]
         // Tổ hợp thuộc tính cụ thể của SKU này dạng JSON
         // Ví dụ: {"color": "Đỏ", "size": "M"}
+        // public string? Attributes { get; set; }
         public string? Attributes { get; set; }
         [Column("img_url")]
         public string imgUrl { get; set; } = string.Empty;
