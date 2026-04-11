@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using FluxifyAPI.Helpers;
 using FluxifyAPI.Models;
 
 namespace FluxifyAPI.Interfaces
@@ -11,7 +12,7 @@ namespace FluxifyAPI.Interfaces
         public Task<Tenant?> GetTenantAsync(Guid tenantId);
         public Task<Tenant?> GetTenantByOwnerAsync(Guid tenantId, Guid ownerId);
         public Task<Tenant?> GetTenantBySubdomainAsync(string subdomain);
-        public Task<List<Tenant>> GetTenantsByPlatformUserAsync(Guid platformUserId);
+        public Task<List<Tenant>> GetTenantsByPlatformUserAsync(Guid platformUserId, QueryTenant query);
         public Task<Tenant> CreateTenantAsync(Tenant tenantModel);
         public Task<Tenant> UpdateTenantAsync(Tenant tenant);
         public Task<Tenant?> DeleteTenantAsync(Guid tenantId);

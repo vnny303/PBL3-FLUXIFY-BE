@@ -4,10 +4,10 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using FluxifyAPI.Interfaces;
 using FluxifyAPI.Mapper;
-using FluxifyAPI.Models;
 
 namespace FluxifyAPI.Controllers
 {
+    [Authorize(Roles = "merchant")]
     [Route("api/tenants/{tenantId}/[controller]")]
     [ApiController]
     public class CustomersController : ControllerBase
@@ -22,7 +22,6 @@ namespace FluxifyAPI.Controllers
         }
 
         // GET: api/tenants/{tenantId}/customers
-        [Authorize]
         [HttpGet]
         public async Task<IActionResult> GetCustomers(Guid tenantId)
         {
@@ -42,7 +41,6 @@ namespace FluxifyAPI.Controllers
         }
 
         // GET: api/tenants/{tenantId}/customers/{customerId}
-        [Authorize]
         [HttpGet("{customerId}")]
         public async Task<IActionResult> GetCustomer(Guid tenantId, Guid customerId)
         {
@@ -65,7 +63,6 @@ namespace FluxifyAPI.Controllers
         }
         // GET: api/subdomain/{subdomain}/customers/{customerId} (COI LẠI)
         // GET: api/tenants/{tenantId}/customers/email/{email}
-        [Authorize]
         [HttpGet("email/{email}")]
         public async Task<IActionResult> GetCustomerByEmail(Guid tenantId, string email)
         {
@@ -87,7 +84,6 @@ namespace FluxifyAPI.Controllers
             return Ok(customer.ToCustomerDto());
         }
         // GET: api/tenants/{tenantId}/customers/cart/{cartId}
-        [Authorize]
         [HttpGet("cart/{cartId}")]
         public async Task<IActionResult> GetCustomerByCart(Guid tenantId, Guid cartId)
         {
@@ -122,7 +118,6 @@ namespace FluxifyAPI.Controllers
                 createdCustomer.ToCustomerDto());
         }
         // PUT: api/tenants/{tenantId}/customers/{customerId}
-        [Authorize]
         [HttpPut("{customerId}")]
         public async Task<IActionResult> UpdateCustomer(Guid tenantId, Guid customerId, [FromBody] UpdateCustomerRequestDto customerDto)
         {
@@ -151,7 +146,6 @@ namespace FluxifyAPI.Controllers
             return Ok(updatedCustomer.ToCustomerDto());
         }
         // DELETE: api/tenants/{tenantId}/customers/{customerId}
-        [Authorize]
         [HttpDelete("{customerId}")]
         public async Task<IActionResult> DeleteCustomer(Guid tenantId, Guid customerId)
         {
