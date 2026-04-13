@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace FluxifyAPI.Models
@@ -23,5 +23,7 @@ namespace FluxifyAPI.Models
         public PlatformUser Owner { get; set; } = null!;
     }
 }
+
+
 
 

@@ -19,3 +19,4 @@ namespace FluxifyAPI.DTOs.Cartegory
         public List<ProductDto>? Products { get; set; } = new List<ProductDto>();
     }
 }
+

@@ -1,8 +1,8 @@
 using FluxifyAPI.DTOs.Cartegory;
 using FluxifyAPI.Helpers;
-using FluxifyAPI.Services;
+using FluxifyAPI.Services.Common;
 
-namespace FluxifyAPI.IServices
+namespace FluxifyAPI.Services.Interfaces
 {
     public interface ICategoryService
     {
@@ -12,3 +12,5 @@ namespace FluxifyAPI.IServices
         Task<ServiceResult<object>> DeleteCategoryAsync(Guid tenantId, Guid categoryId);
     }
 }
+
+

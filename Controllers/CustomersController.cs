@@ -2,7 +2,7 @@ using FluxifyAPI.DTOs.Customer;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
-using FluxifyAPI.IServices;
+using FluxifyAPI.Services.Interfaces;
 
 namespace FluxifyAPI.Controllers
 {
@@ -132,3 +132,4 @@ namespace FluxifyAPI.Controllers
         }
     }
 }
+

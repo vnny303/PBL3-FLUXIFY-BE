@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using FluxifyAPI.DTOs.Order;
 using FluxifyAPI.Helpers;
-using FluxifyAPI.IServices;
+using FluxifyAPI.Services.Interfaces;
 
 namespace FluxifyAPI.Controllers
 {
+    [Authorize(Roles = "merchant")]
     [Route("api/tenants/{tenantId}/[controller]")]
     [ApiController]
     public class OrdersController : ControllerBase
@@ -84,3 +86,4 @@ namespace FluxifyAPI.Controllers
         }
     }
 }
+

@@ -20,3 +20,5 @@ namespace FluxifyAPI.Helpers
         public int? StockTo { get; set; }
     }
 }
+
+

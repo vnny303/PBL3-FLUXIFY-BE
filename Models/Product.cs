@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace FluxifyAPI.Models
@@ -17,8 +17,8 @@ namespace FluxifyAPI.Models
         [Column("description")]
         public string? Description { get; set; }
         [Column("attributes")]
-        // Định nghĩa các nhóm thuộc tính của sản phẩm dạng JSON
-        // Ví dụ: {"color": ["Đỏ","Xanh","Trắng"], "size": ["S","M","L","XL"]}
+        // �?nh nghia c�c nh�m thu?c t�nh c?a s?n ph?m d?ng JSON
+        // V� d?: {"color": ["�?","Xanh","Tr?ng"], "size": ["S","M","L","XL"]}
         // public Dictionary<string, List<string>> Attributes { get; set; } = new Dictionary<string, List<string>>();
         public string? Attributes { get; set; }
         [Column("img_urls")]
@@ -30,3 +30,5 @@ namespace FluxifyAPI.Models
         public List<ProductSku> ProductSkus { get; set; } = new List<ProductSku>();
     }
 }
+
+

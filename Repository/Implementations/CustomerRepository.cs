@@ -1,10 +1,9 @@
 using FluxifyAPI.Data;
-using FluxifyAPI.Interfaces;
+using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace FluxifyAPI.Repository
-{
+namespace FluxifyAPI.Repository.Implementations {
     public class CustomerRepository : ICustomerRepository
     {
         private readonly AppDbContext _context;
@@ -108,3 +107,4 @@ namespace FluxifyAPI.Repository
         }
     }
 }
+

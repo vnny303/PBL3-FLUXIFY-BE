@@ -14,3 +14,5 @@ namespace FluxifyAPI.Helpers
         public bool? IsActive { get; set; }
     }
 }
+
+

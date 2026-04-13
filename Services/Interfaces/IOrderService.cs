@@ -1,8 +1,8 @@
 using FluxifyAPI.DTOs.Order;
 using FluxifyAPI.Helpers;
-using FluxifyAPI.Services;
+using FluxifyAPI.Services.Common;
 
-namespace FluxifyAPI.IServices
+namespace FluxifyAPI.Services.Interfaces
 {
     public interface IOrderService
     {
@@ -13,3 +13,5 @@ namespace FluxifyAPI.IServices
         Task<ServiceResult<object>> DeleteOrderAsync(Guid tenantId, Guid id);
     }
 }
+
+

@@ -22,3 +22,4 @@ namespace FluxifyAPI.DTOs.Product
         public List<ProductSkuDto> ProductSkus { get; set; } = new List<ProductSkuDto>();
     }
 }
+

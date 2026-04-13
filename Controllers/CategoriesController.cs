@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using FluxifyAPI.DTOs.Cartegory;
 using FluxifyAPI.Helpers;
-using FluxifyAPI.IServices;
+using FluxifyAPI.Services.Interfaces;
 
 namespace FluxifyAPI.Controllers
 {
+    [Authorize(Roles = "merchant")]
     [Route("api/tenants/{tenantId}/[controller]")]
     [ApiController]
     public class CategoriesController : ControllerBase
@@ -27,7 +29,7 @@ namespace FluxifyAPI.Controllers
             return StatusCode(result.StatusCode, result.Data);
         }
 
-        // POST - BỎ KIỂM TRA SESSION
+        // POST - B? KI?M TRA SESSION
         [HttpPost]
         public async Task<ActionResult> CreateCategory(Guid tenantId, [FromBody] CreateCategoryRequestDto createDto)
         {
@@ -41,7 +43,7 @@ namespace FluxifyAPI.Controllers
             return StatusCode(result.StatusCode, result.Data);
         }
 
-        // PUT - BỎ KIỂM TRA SESSION
+        // PUT - B? KI?M TRA SESSION
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateCategory(Guid tenantId, Guid id, [FromBody] UpdateCategoryRequestDto updateDto)
         {
@@ -55,7 +57,7 @@ namespace FluxifyAPI.Controllers
             return StatusCode(result.StatusCode, result.Data);
         }
 
-        // DELETE - BỎ KIỂM TRA SESSION
+        // DELETE - B? KI?M TRA SESSION
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCategory(Guid tenantId, Guid id)
         {
@@ -67,3 +69,4 @@ namespace FluxifyAPI.Controllers
         }
     }
 }
+

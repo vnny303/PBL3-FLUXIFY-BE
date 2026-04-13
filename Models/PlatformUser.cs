@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 namespace FluxifyAPI.Models
 {
     [Table("platform_users")]
@@ -23,3 +23,5 @@ namespace FluxifyAPI.Models
         public List<Tenant> Tenants { get; set; } = new List<Tenant>();
     }
 }
+
+

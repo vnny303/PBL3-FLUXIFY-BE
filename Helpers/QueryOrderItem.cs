@@ -23,3 +23,5 @@ namespace FluxifyAPI.Helpers
         public decimal? UnitPriceTo { get; set; }
     }
 }
+
+

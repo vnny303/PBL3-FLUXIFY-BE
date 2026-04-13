@@ -14,3 +14,4 @@ namespace FluxifyAPI.DTOs.Customer
         public bool? IsActive { get; set; }
     }
 }
+

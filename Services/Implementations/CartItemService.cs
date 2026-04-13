@@ -1,9 +1,9 @@
 using FluxifyAPI.DTOs.Cart;
-using FluxifyAPI.Interfaces;
-using FluxifyAPI.IServices;
+using FluxifyAPI.Repository.Interfaces;
+using FluxifyAPI.Services.Interfaces;
+using FluxifyAPI.Services.Common;
 
-namespace FluxifyAPI.Services
-{
+namespace FluxifyAPI.Services.Implementations {
     public class CartItemService : ICartItemService
     {
         private readonly ICartItemRepository _cartItemRepository;
@@ -127,3 +127,7 @@ namespace FluxifyAPI.Services
         }
     }
 }
+
+
+
+

@@ -1,7 +1,7 @@
 using FluxifyAPI.DTOs.Customer;
-using FluxifyAPI.Services;
+using FluxifyAPI.Services.Common;
 
-namespace FluxifyAPI.IServices
+namespace FluxifyAPI.Services.Interfaces
 {
     public interface ICustomerService
     {
@@ -14,3 +14,5 @@ namespace FluxifyAPI.IServices
         Task<ServiceResult<object>> DeleteCustomerAsync(Guid tenantId, Guid customerId, Guid ownerId);
     }
 }
+
+

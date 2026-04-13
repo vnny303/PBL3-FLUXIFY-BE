@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
-using FluxifyAPI.IServices;
+using Microsoft.AspNetCore.Authorization;
+using FluxifyAPI.Services.Interfaces;
 
 namespace FluxifyAPI.Controllers
 {
     // Class này sẽ chứa các API dành cho admin, như quản lý người dùng, quản lý sản phẩm, v.v.
+    [Authorize(Roles = "admin")]
     [Route("api/[controller]")]
 
     [ApiController]
@@ -36,3 +38,4 @@ namespace FluxifyAPI.Controllers
         }
     }
 }
+

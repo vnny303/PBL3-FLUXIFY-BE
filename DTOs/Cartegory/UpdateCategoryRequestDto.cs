@@ -12,3 +12,5 @@ namespace FluxifyAPI.DTOs.Cartegory
         public bool? IsActive { get; set; }
     }
 }
+
+

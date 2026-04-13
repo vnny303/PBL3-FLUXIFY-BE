@@ -1,10 +1,10 @@
 using FluxifyAPI.DTOs.Cart;
-using FluxifyAPI.Interfaces;
+using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Mapper;
-using FluxifyAPI.IServices;
+using FluxifyAPI.Services.Interfaces;
+using FluxifyAPI.Services.Common;
 
-namespace FluxifyAPI.Services
-{
+namespace FluxifyAPI.Services.Implementations {
     public class CartService : ICartService
     {
         private readonly ICartRepository _cartRepository;
@@ -52,3 +52,7 @@ namespace FluxifyAPI.Services
         }
     }
 }
+
+
+
+

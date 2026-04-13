@@ -1,9 +1,12 @@
 using FluxifyAPI.DTOs.Cart;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using FluxifyAPI.IServices;
+using FluxifyAPI.Services.Interfaces;
+using System.Security.Claims;
 
 namespace FluxifyAPI.Controllers
 {
+    [Authorize(Roles = "customer")]
     [Route("api/tenants/{tenantId}/customers/{customerId}/[controller]")]
     [ApiController]
     public class CartsController : ControllerBase
@@ -15,9 +18,31 @@ namespace FluxifyAPI.Controllers
             _cartService = cartService;
         }
 
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<CartDto>>> GetCarts(Guid tenantId, Guid customerId)
+        private bool TryValidateCustomerScope(Guid customerId, out IActionResult? errorResult)
         {
+            errorResult = null;
+            var userIdClaim = User.FindFirstValue("userId");
+            if (!Guid.TryParse(userIdClaim, out var tokenCustomerId))
+            {
+                errorResult = Unauthorized(new { message = "Token không hợp lệ" });
+                return false;
+            }
+
+            if (tokenCustomerId != customerId)
+            {
+                errorResult = StatusCode(403, new { message = "Bạn không có quyền truy cập giỏ hàng này" });
+                return false;
+            }
+
+            return true;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetCarts(Guid tenantId, Guid customerId)
+        {
+            if (!TryValidateCustomerScope(customerId, out var errorResult))
+                return errorResult!;
+
             var result = await _cartService.GetCartsAsync(tenantId, customerId);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
@@ -26,8 +51,11 @@ namespace FluxifyAPI.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<CartDto>> CreateCart(Guid tenantId, Guid customerId, [FromBody] CreateCartRequestDto createDto)
+        public async Task<IActionResult> CreateCart(Guid tenantId, Guid customerId, [FromBody] CreateCartRequestDto createDto)
         {
+            if (!TryValidateCustomerScope(customerId, out var errorResult))
+                return errorResult!;
+
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
@@ -39,3 +67,5 @@ namespace FluxifyAPI.Controllers
         }
     }
 }
+
+

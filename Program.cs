@@ -3,10 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using FluxifyAPI.Data;
-using FluxifyAPI.Interfaces;
-using FluxifyAPI.Repository;
-using FluxifyAPI.IServices;
-using FluxifyAPI.Services;
+using FluxifyAPI.Repository.Interfaces;
+using FluxifyAPI.Repository.Implementations;
+using FluxifyAPI.Services.Interfaces;
+using FluxifyAPI.Services.Implementations;
+using FluxifyAPI.Services.Common;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using System.Text.Json;
@@ -124,3 +125,4 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+

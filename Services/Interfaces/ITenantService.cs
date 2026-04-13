@@ -1,8 +1,8 @@
 using FluxifyAPI.DTOs.Tenant;
 using FluxifyAPI.Helpers;
-using FluxifyAPI.Services;
+using FluxifyAPI.Services.Common;
 
-namespace FluxifyAPI.IServices
+namespace FluxifyAPI.Services.Interfaces
 {
     public interface ITenantService
     {
@@ -14,3 +14,5 @@ namespace FluxifyAPI.IServices
         Task<ServiceResult<object>> DeleteTenantAsync(Guid id, Guid ownerId);
     }
 }
+
+

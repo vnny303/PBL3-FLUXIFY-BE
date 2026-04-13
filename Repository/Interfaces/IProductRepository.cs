@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using FluxifyAPI.Models;
 
-namespace FluxifyAPI.Interfaces
+namespace FluxifyAPI.Repository.Interfaces
 {
     public interface IProductRepository
     {
@@ -17,3 +17,4 @@ namespace FluxifyAPI.Interfaces
         public Task<Product?> DeleteProductAsync(Guid tenantId, Guid productId);
     }
 }
+

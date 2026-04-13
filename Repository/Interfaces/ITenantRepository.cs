@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using FluxifyAPI.Models;
 
-namespace FluxifyAPI.Interfaces
+namespace FluxifyAPI.Repository.Interfaces
 {
     public interface ITenantRepository
     {
@@ -20,3 +20,4 @@ namespace FluxifyAPI.Interfaces
         public Task<bool> SubdomainExists(string subdomain, Guid? excludeTenantId = null);
     }
 }
+

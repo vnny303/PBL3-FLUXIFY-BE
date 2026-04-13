@@ -1,9 +1,9 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using FluxifyAPI.DTOs.Tenant;
 using System.Security.Claims;
 using FluxifyAPI.Helpers;
-using FluxifyAPI.IServices;
+using FluxifyAPI.Services.Interfaces;
 
 namespace FluxifyAPI.Controllers
 {
@@ -28,7 +28,7 @@ namespace FluxifyAPI.Controllers
 
             var userIdClaim = User.FindFirstValue("userId");
             if (!Guid.TryParse(userIdClaim, out var ownerId))
-                return Unauthorized(new { message = "Token không hợp lệ hoặc thiếu userId claim" });
+                return Unauthorized(new { message = "Token kh�ng h?p l? ho?c thi?u userId claim" });
 
             var result = await _tenantService.GetMyTenantsAsync(ownerId, query);
             if (!result.Success)
@@ -42,7 +42,7 @@ namespace FluxifyAPI.Controllers
         {
             var userIdClaim = User.FindFirstValue("userId");
             if (!Guid.TryParse(userIdClaim, out var ownerId))
-                return Unauthorized(new { message = "Token không hợp lệ" });
+                return Unauthorized(new { message = "Token kh�ng h?p l?" });
 
             var result = await _tenantService.GetTenantAsync(id, ownerId);
             if (!result.Success)
@@ -72,7 +72,7 @@ namespace FluxifyAPI.Controllers
 
             var userIdClaim = User.FindFirstValue("userId");
             if (!Guid.TryParse(userIdClaim, out var ownerId))
-                return Unauthorized(new { message = "Token không hợp lệ" });
+                return Unauthorized(new { message = "Token kh�ng h?p l?" });
 
             var result = await _tenantService.CreateTenantAsync(ownerId, tenantDto);
             if (!result.Success)
@@ -90,7 +90,7 @@ namespace FluxifyAPI.Controllers
 
             var userIdClaim = User.FindFirstValue("userId");
             if (!Guid.TryParse(userIdClaim, out var ownerId))
-                return Unauthorized(new { message = "Token không hợp lệ" });
+                return Unauthorized(new { message = "Token kh�ng h?p l?" });
 
             var result = await _tenantService.UpdateTenantAsync(id, ownerId, tenantDto);
             if (!result.Success)
@@ -105,7 +105,7 @@ namespace FluxifyAPI.Controllers
         {
             var userIdClaim = User.FindFirstValue("userId");
             if (!Guid.TryParse(userIdClaim, out var ownerId))
-                return Unauthorized(new { message = "Token không hợp lệ" });
+                return Unauthorized(new { message = "Token kh�ng h?p l?" });
 
             var result = await _tenantService.DeleteTenantAsync(id, ownerId);
             if (!result.Success)
@@ -115,3 +115,4 @@ namespace FluxifyAPI.Controllers
         }
     }
 }
+

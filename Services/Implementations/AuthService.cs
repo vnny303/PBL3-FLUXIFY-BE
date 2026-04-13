@@ -1,15 +1,15 @@
 using FluxifyAPI.DTOs;
 using FluxifyAPI.DTOs.Customer;
-using FluxifyAPI.Interfaces;
+using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Mapper;
-using FluxifyAPI.IServices;
+using FluxifyAPI.Services.Interfaces;
+using FluxifyAPI.Services.Common;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace FluxifyAPI.Services
-{
+namespace FluxifyAPI.Services.Implementations {
     public class AuthService : IAuthService
     {
         private readonly IPlatformUserRepository _platformUserRepository;
@@ -227,3 +227,7 @@ namespace FluxifyAPI.Services
         }
     }
 }
+
+
+
+

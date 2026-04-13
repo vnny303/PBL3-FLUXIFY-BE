@@ -1,7 +1,7 @@
 using FluxifyAPI.DTOs.PlatformUser;
-using FluxifyAPI.Services;
+using FluxifyAPI.Services.Common;
 
-namespace FluxifyAPI.IServices
+namespace FluxifyAPI.Services.Interfaces
 {
     public interface IAdminService
     {
@@ -9,3 +9,5 @@ namespace FluxifyAPI.IServices
         Task<ServiceResult<object>> DeletePlatformUserAsync(Guid id);
     }
 }
+
+

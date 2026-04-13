@@ -17,3 +17,5 @@ namespace FluxifyAPI.Helpers
         public bool? HasAttributes { get; set; }
     }
 }
+
+

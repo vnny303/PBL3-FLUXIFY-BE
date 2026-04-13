@@ -17,3 +17,4 @@ namespace FluxifyAPI.Models
         public List<CartItem> CartItems { get; set; } = new List<CartItem>();
     }
 }
+

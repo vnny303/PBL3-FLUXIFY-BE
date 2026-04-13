@@ -1,12 +1,12 @@
 using FluxifyAPI.DTOs.Tenant;
 using FluxifyAPI.Helpers;
-using FluxifyAPI.Interfaces;
+using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Mapper;
-using FluxifyAPI.IServices;
+using FluxifyAPI.Services.Interfaces;
+using FluxifyAPI.Services.Common;
 using Microsoft.EntityFrameworkCore;
 
-namespace FluxifyAPI.Services
-{
+namespace FluxifyAPI.Services.Implementations {
     public class TenantService : ITenantService
     {
         private readonly ITenantRepository _tenantRepository;
@@ -147,3 +147,7 @@ namespace FluxifyAPI.Services
         }
     }
 }
+
+
+
+

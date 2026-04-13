@@ -1,13 +1,13 @@
 using FluxifyAPI.DTOs.Product;
 using FluxifyAPI.DTOs.ProductSku;
 using FluxifyAPI.Helpers;
-using FluxifyAPI.Interfaces;
+using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Mapper;
-using FluxifyAPI.IServices;
+using FluxifyAPI.Services.Interfaces;
+using FluxifyAPI.Services.Common;
 using Microsoft.EntityFrameworkCore;
 
-namespace FluxifyAPI.Services
-{
+namespace FluxifyAPI.Services.Implementations {
     public class ProductService : IProductService
     {
         private readonly IProductRepository _productRepository;
@@ -194,3 +194,7 @@ namespace FluxifyAPI.Services
         }
     }
 }
+
+
+
+

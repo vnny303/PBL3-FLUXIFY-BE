@@ -32,3 +32,5 @@ namespace FluxifyAPI.Helpers
         public DateTime? CreatedTo { get; set; }
     }
 }
+
+

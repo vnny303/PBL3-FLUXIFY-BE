@@ -1,6 +1,6 @@
 using FluxifyAPI.Models;
 
-namespace FluxifyAPI.Interfaces
+namespace FluxifyAPI.Repository.Interfaces
 {
     public interface IOrderRepository
     {
@@ -13,3 +13,4 @@ namespace FluxifyAPI.Interfaces
         public Task<Order?> DeleteOrderAsync(Guid tenantId, Guid orderId);
     }
 }
+

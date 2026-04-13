@@ -1,6 +1,6 @@
 using FluxifyAPI.Models;
 
-namespace FluxifyAPI.Interfaces
+namespace FluxifyAPI.Repository.Interfaces
 {
     public interface IProductSkuRepository
     {
@@ -12,3 +12,4 @@ namespace FluxifyAPI.Interfaces
 
     }
 }
+

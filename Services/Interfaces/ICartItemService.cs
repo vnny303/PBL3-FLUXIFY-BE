@@ -1,7 +1,7 @@
 using FluxifyAPI.DTOs.Cart;
-using FluxifyAPI.Services;
+using FluxifyAPI.Services.Common;
 
-namespace FluxifyAPI.IServices
+namespace FluxifyAPI.Services.Interfaces
 {
     public interface ICartItemService
     {
@@ -12,3 +12,5 @@ namespace FluxifyAPI.IServices
         Task<ServiceResult<object>> ClearCartAsync(Guid tenantId, Guid customerId);
     }
 }
+
+

@@ -14,3 +14,5 @@ namespace FluxifyAPI.DTOs.Tenant
         public bool? IsActive { get; set; }
     }
 }
+
+

@@ -44,7 +44,7 @@ namespace FluxifyAPI.Migrations
 
                     b.HasIndex("TenantId");
 
-                    b.ToTable("carts");
+                    b.ToTable("carts", (string)null);
                 });
 
             modelBuilder.Entity("FluxifyAPI.Models.CartItem", b =>
@@ -72,7 +72,7 @@ namespace FluxifyAPI.Migrations
 
                     b.HasIndex("ProductSkuId");
 
-                    b.ToTable("cart_items");
+                    b.ToTable("cart_items", (string)null);
                 });
 
             modelBuilder.Entity("FluxifyAPI.Models.Category", b =>
@@ -102,7 +102,7 @@ namespace FluxifyAPI.Migrations
 
                     b.HasIndex("TenantId");
 
-                    b.ToTable("categories");
+                    b.ToTable("categories", (string)null);
                 });
 
             modelBuilder.Entity("FluxifyAPI.Models.Customer", b =>
@@ -141,7 +141,7 @@ namespace FluxifyAPI.Migrations
                     b.HasIndex("TenantId", "Email")
                         .IsUnique();
 
-                    b.ToTable("customers");
+                    b.ToTable("customers", (string)null);
                 });
 
             modelBuilder.Entity("FluxifyAPI.Models.Order", b =>
@@ -189,7 +189,7 @@ namespace FluxifyAPI.Migrations
 
                     b.HasIndex("TenantId");
 
-                    b.ToTable("orders");
+                    b.ToTable("orders", (string)null);
                 });
 
             modelBuilder.Entity("FluxifyAPI.Models.OrderItem", b =>
@@ -225,7 +225,7 @@ namespace FluxifyAPI.Migrations
 
                     b.HasIndex("ProductSkuId");
 
-                    b.ToTable("order_items");
+                    b.ToTable("order_items", (string)null);
                 });
 
             modelBuilder.Entity("FluxifyAPI.Models.PlatformUser", b =>
@@ -271,7 +271,7 @@ namespace FluxifyAPI.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("platform_users");
+                    b.ToTable("platform_users", (string)null);
                 });
 
             modelBuilder.Entity("FluxifyAPI.Models.Product", b =>
@@ -313,46 +313,7 @@ namespace FluxifyAPI.Migrations
 
                     b.HasIndex("TenantId");
 
-                    b.ToTable("products");
-                });
-
-            modelBuilder.Entity("FluxifyAPI.Models.ProductImage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasColumnName("created_at")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<bool>("IsPrimary")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_primary");
-
-                    b.Property<Guid>("ProductId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("product_id");
-
-                    b.Property<int>("SortOrder")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0)
-                        .HasColumnName("sort_order");
-
-                    b.Property<string>("Url")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("url");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("product_images");
+                    b.ToTable("products", (string)null);
                 });
 
             modelBuilder.Entity("FluxifyAPI.Models.ProductSku", b =>
@@ -388,7 +349,7 @@ namespace FluxifyAPI.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("product_skus");
+                    b.ToTable("product_skus", (string)null);
                 });
 
             modelBuilder.Entity("FluxifyAPI.Models.Tenant", b =>
@@ -423,7 +384,7 @@ namespace FluxifyAPI.Migrations
                     b.HasIndex("Subdomain")
                         .IsUnique();
 
-                    b.ToTable("tenants");
+                    b.ToTable("tenants", (string)null);
                 });
 
             modelBuilder.Entity("FluxifyAPI.Models.Cart", b =>
@@ -540,17 +501,6 @@ namespace FluxifyAPI.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("FluxifyAPI.Models.ProductImage", b =>
-                {
-                    b.HasOne("FluxifyAPI.Models.Product", "Product")
-                        .WithMany("ProductImages")
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Product");
-                });
-
             modelBuilder.Entity("FluxifyAPI.Models.ProductSku", b =>
                 {
                     b.HasOne("FluxifyAPI.Models.Product", "Product")
@@ -603,8 +553,6 @@ namespace FluxifyAPI.Migrations
 
             modelBuilder.Entity("FluxifyAPI.Models.Product", b =>
                 {
-                    b.Navigation("ProductImages");
-
                     b.Navigation("ProductSkus");
                 });
 

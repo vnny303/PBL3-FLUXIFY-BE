@@ -17,3 +17,4 @@ namespace FluxifyAPI.DTOs.ProductSku
         public string? imgUrl { get; set; }
     }
 }
+

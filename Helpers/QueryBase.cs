@@ -33,3 +33,5 @@ namespace FluxifyAPI.Helpers
             string.Equals(SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
     }
 }
+
+

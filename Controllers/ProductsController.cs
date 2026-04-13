@@ -1,11 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using FluxifyAPI.DTOs.Product;
 using FluxifyAPI.DTOs.ProductSku;
 using FluxifyAPI.Helpers;
-using FluxifyAPI.IServices;
+using FluxifyAPI.Services.Interfaces;
 
 namespace FluxifyAPI.Controllers
 {
+    [Authorize(Roles = "merchant")]
     [Route("api/tenants/{tenantId}/[controller]")]
     [ApiController]
     public class ProductsController : ControllerBase
@@ -17,9 +19,9 @@ namespace FluxifyAPI.Controllers
             _productService = productService;
         }
 
-        // ─────────────────────────────────────────────
+        // ---------------------------------------------
         // PRODUCT ENDPOINTS
-        // ─────────────────────────────────────────────
+        // ---------------------------------------------
 
         // GET: Lay tat ca san pham (kem SKUs)
         [HttpGet]
@@ -94,9 +96,9 @@ namespace FluxifyAPI.Controllers
             return StatusCode(result.StatusCode, result.Data);
         }
 
-        // ─────────────────────────────────────────────
+        // ---------------------------------------------
         // SKU ENDPOINTS  (nested under product)
-        // ─────────────────────────────────────────────
+        // ---------------------------------------------
 
         // GET: Lay tat ca SKUs cua mot san pham
         [HttpGet("{id}/skus")]
@@ -150,3 +152,4 @@ namespace FluxifyAPI.Controllers
         }
     }
 }
+

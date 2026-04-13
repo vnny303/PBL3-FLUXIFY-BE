@@ -1,9 +1,9 @@
 using FluxifyAPI.DTOs.Product;
 using FluxifyAPI.DTOs.ProductSku;
 using FluxifyAPI.Helpers;
-using FluxifyAPI.Services;
+using FluxifyAPI.Services.Common;
 
-namespace FluxifyAPI.IServices
+namespace FluxifyAPI.Services.Interfaces
 {
     public interface IProductService
     {
@@ -19,3 +19,5 @@ namespace FluxifyAPI.IServices
         Task<ServiceResult<object>> DeleteSkuAsync(Guid tenantId, Guid productId, Guid skuId);
     }
 }
+
+

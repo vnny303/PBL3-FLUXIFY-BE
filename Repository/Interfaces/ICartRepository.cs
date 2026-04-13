@@ -1,6 +1,6 @@
 using FluxifyAPI.Models;
 
-namespace FluxifyAPI.Interfaces
+namespace FluxifyAPI.Repository.Interfaces
 {
     public interface ICartRepository
     {
@@ -9,3 +9,4 @@ namespace FluxifyAPI.Interfaces
         public Task<Cart?> DeleteCartAsync(Guid tenantId, Guid customerId);
     }
 }
+

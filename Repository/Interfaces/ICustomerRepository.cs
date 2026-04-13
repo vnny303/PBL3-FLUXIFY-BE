@@ -1,6 +1,6 @@
 using FluxifyAPI.Models;
 
-namespace FluxifyAPI.Interfaces
+namespace FluxifyAPI.Repository.Interfaces
 {
     public interface ICustomerRepository
     {
@@ -14,3 +14,4 @@ namespace FluxifyAPI.Interfaces
         Task<Customer?> DeleteCustomerAsync(Guid tenantId, Guid customerId);
     }
 }
+

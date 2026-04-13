@@ -1,10 +1,10 @@
 using FluxifyAPI.DTOs.Customer;
-using FluxifyAPI.Interfaces;
+using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Mapper;
-using FluxifyAPI.IServices;
+using FluxifyAPI.Services.Interfaces;
+using FluxifyAPI.Services.Common;
 
-namespace FluxifyAPI.Services
-{
+namespace FluxifyAPI.Services.Implementations {
     public class CustomerService : ICustomerService
     {
         private readonly ICustomerRepository _customerRepository;
@@ -139,3 +139,7 @@ namespace FluxifyAPI.Services
         }
     }
 }
+
+
+
+

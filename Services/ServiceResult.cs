@@ -1,5 +1,4 @@
-namespace FluxifyAPI.Services
-{
+namespace FluxifyAPI.Services.Common {
     public class ServiceResult<T>
     {
         public bool Success { get; init; }
@@ -29,3 +28,6 @@ namespace FluxifyAPI.Services
         };
     }
 }
+
+
+
