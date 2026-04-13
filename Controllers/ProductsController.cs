@@ -1,10 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using FluxifyAPI.Data;
 using FluxifyAPI.DTOs.Product;
 using FluxifyAPI.DTOs.ProductSku;
-using FluxifyAPI.Models;
-using FluxifyAPI.Mapper;
+using FluxifyAPI.Helpers;
+using FluxifyAPI.IServices;
 
 namespace FluxifyAPI.Controllers
 {
@@ -12,11 +10,11 @@ namespace FluxifyAPI.Controllers
     [ApiController]
     public class ProductsController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly IProductService _productService;
 
-        public ProductsController(AppDbContext context)
+        public ProductsController(IProductService productService)
         {
-            _context = context;
+            _productService = productService;
         }
 
         // ─────────────────────────────────────────────
@@ -25,31 +23,24 @@ namespace FluxifyAPI.Controllers
 
         // GET: Lay tat ca san pham (kem SKUs)
         [HttpGet]
-        public async Task<ActionResult> GetProducts(Guid tenantId)
+        public async Task<ActionResult> GetProducts(Guid tenantId, [FromQuery] QueryProduct query)
         {
-            var products = await _context.Products
-                .Where(p => p.TenantId == tenantId)
-                .Include(p => p.Category)
-                .Include(p => p.ProductSkus)
-                .ToListAsync();
+            var result = await _productService.GetProductsAsync(tenantId, query);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
 
-            return Ok(products.Select(p => p.ToProductDto()));
+            return StatusCode(result.StatusCode, result.Data);
         }
 
         // GET BY ID
         [HttpGet("{id}")]
         public async Task<ActionResult> GetProduct(Guid tenantId, Guid id)
         {
-            var product = await _context.Products
-                .Where(p => p.TenantId == tenantId && p.Id == id)
-                .Include(p => p.Category)
-                .Include(p => p.ProductSkus)
-                .FirstOrDefaultAsync();
+            var result = await _productService.GetProductAsync(tenantId, id);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
 
-            if (product == null)
-                return NotFound();
-
-            return Ok(product.ToProductDto());
+            return StatusCode(result.StatusCode, result.Data);
         }
 
         // POST: Tao san pham moi (co the kem danh sach SKUs)
@@ -68,95 +59,39 @@ namespace FluxifyAPI.Controllers
         [HttpPost]
         public async Task<ActionResult> CreateProduct(Guid tenantId, [FromBody] CreateProductRequestDto createDto)
         {
-            try
-            {
-                if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-                var categoryExists = await _context.Categories.AnyAsync(c => c.Id == createDto.CategoryId && c.TenantId == tenantId);
-                if (!categoryExists)
-                    return BadRequest(new { message = "Category không tồn tại trong tenant này" });
+            var result = await _productService.CreateProductAsync(tenantId, createDto);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
 
-                var product = createDto.ToProductFromCreateDto(tenantId);
-
-                _context.Products.Add(product);
-
-                await _context.SaveChangesAsync();
-
-                return Ok(product.ToProductDto());
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new
-                {
-                    message = "Lỗi khi tạo sản phẩm",
-                    error = ex.Message,
-                    innerError = ex.InnerException?.Message
-                });
-            }
+            return StatusCode(result.StatusCode, result.Data);
         }
 
         // PUT: Cap nhat thong tin san pham (khong bao gom SKUs)
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateProduct(Guid tenantId, Guid id, [FromBody] UpdateProductRequestDto updateDto)
         {
-            try
-            {
-                if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-                var product = await _context.Products
-                    .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == id);
+            var result = await _productService.UpdateProductAsync(tenantId, id, updateDto);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
 
-                if (product == null)
-                    return NotFound(new { message = "Khong tim thay san pham!" });
-
-                if (updateDto.CategoryId.HasValue)
-                {
-                    var categoryExists = await _context.Categories.AnyAsync(c => c.Id == updateDto.CategoryId.Value && c.TenantId == tenantId);
-                    if (!categoryExists)
-                        return BadRequest(new { message = "Category không tồn tại trong tenant này" });
-                }
-
-                if (updateDto.imgUrls != null)
-                {
-                    product.imgUrls = updateDto.imgUrls;
-                }
-
-                updateDto.ToProductFromUpdateDto(product);
-
-                await _context.SaveChangesAsync();
-
-                await _context.Entry(product).Collection(p => p.ProductSkus).LoadAsync();
-                return Ok(product.ToProductDto());
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = "Loi khi cap nhat", error = ex.Message });
-            }
+            return StatusCode(result.StatusCode, result.Data);
         }
 
         // DELETE: Xoa san pham (cascade xoa ca SKUs)
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProduct(Guid tenantId, Guid id)
         {
-            try
-            {
-                var product = await _context.Products
-                    .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == id);
+            var result = await _productService.DeleteProductAsync(tenantId, id);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
 
-                if (product == null)
-                    return NotFound();
-
-                _context.Products.Remove(product);
-                await _context.SaveChangesAsync();
-
-                return Ok(new { message = "Xoa thanh cong!" });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = "Loi khi xoa", error = ex.Message });
-            }
+            return StatusCode(result.StatusCode, result.Data);
         }
 
         // ─────────────────────────────────────────────
@@ -167,15 +102,11 @@ namespace FluxifyAPI.Controllers
         [HttpGet("{id}/skus")]
         public async Task<ActionResult> GetSkus(Guid tenantId, Guid id)
         {
-            var exists = await _context.Products.AnyAsync(p => p.TenantId == tenantId && p.Id == id);
-            if (!exists)
-                return NotFound(new { message = "Khong tim thay san pham!" });
+            var result = await _productService.GetSkusAsync(tenantId, id);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
 
-            var skus = await _context.ProductSkus
-                .Where(s => s.ProductId == id)
-                .ToListAsync();
-
-            return Ok(skus.Select(s => s.ToProductSkuDto()));
+            return StatusCode(result.StatusCode, result.Data);
         }
 
         // POST: Them SKU cho san pham
@@ -183,76 +114,39 @@ namespace FluxifyAPI.Controllers
         [HttpPost("{id}/skus")]
         public async Task<ActionResult> CreateSku(Guid tenantId, Guid id, [FromBody] CreateProductSkuRequestDto createDto)
         {
-            try
-            {
-                if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-                var exists = await _context.Products.AnyAsync(p => p.TenantId == tenantId && p.Id == id);
-                if (!exists)
-                    return NotFound(new { message = "Khong tim thay san pham!" });
+            var result = await _productService.CreateSkuAsync(tenantId, id, createDto);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
 
-                var sku = createDto.ToProductSkuFromCreateDto(id);
-                _context.ProductSkus.Add(sku);
-                await _context.SaveChangesAsync();
-
-                return Ok(sku.ToProductSkuDto());
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = "Loi khi tao SKU", error = ex.Message });
-            }
+            return StatusCode(result.StatusCode, result.Data);
         }
 
         // PUT: Cap nhat SKU
         [HttpPut("{id}/skus/{skuId}")]
         public async Task<IActionResult> UpdateSku(Guid tenantId, Guid id, Guid skuId, [FromBody] UpdateProductSkuRequestDto updateDto)
         {
-            try
-            {
-                if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-                var sku = await _context.ProductSkus
-                    .Include(s => s.Product)
-                    .FirstOrDefaultAsync(s => s.Id == skuId && s.ProductId == id && s.Product.TenantId == tenantId);
+            var result = await _productService.UpdateSkuAsync(tenantId, id, skuId, updateDto);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
 
-                if (sku == null)
-                    return NotFound(new { message = "Khong tim thay SKU!" });
-
-                updateDto.ToProductSkuFromUpdateDto(sku);
-
-                await _context.SaveChangesAsync();
-                return Ok(sku.ToProductSkuDto());
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = "Loi khi cap nhat SKU", error = ex.Message });
-            }
+            return StatusCode(result.StatusCode, result.Data);
         }
 
         // DELETE: Xoa SKU
         [HttpDelete("{id}/skus/{skuId}")]
         public async Task<IActionResult> DeleteSku(Guid tenantId, Guid id, Guid skuId)
         {
-            try
-            {
-                var sku = await _context.ProductSkus
-                    .Include(s => s.Product)
-                    .FirstOrDefaultAsync(s => s.Id == skuId && s.ProductId == id && s.Product.TenantId == tenantId);
+            var result = await _productService.DeleteSkuAsync(tenantId, id, skuId);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
 
-                if (sku == null)
-                    return NotFound(new { message = "Khong tim thay SKU!" });
-
-                _context.ProductSkus.Remove(sku);
-                await _context.SaveChangesAsync();
-
-                return Ok(new { message = "Xoa SKU thanh cong!" });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = "Loi khi xoa SKU", error = ex.Message });
-            }
+            return StatusCode(result.StatusCode, result.Data);
         }
     }
 }

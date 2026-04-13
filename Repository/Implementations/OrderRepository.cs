@@ -14,18 +14,11 @@ namespace FluxifyAPI.Repository
             _context = context;
         }
 
-        public async Task<Order> GetOrderAsync(Guid tenantId, Guid orderId)
+        public async Task<Order?> GetOrderAsync(Guid tenantId, Guid orderId)
         {
-            var order = await _context.Orders
+            return await _context.Orders
                 .Include(o => o.OrderItems)
                 .FirstOrDefaultAsync(o => o.TenantId == tenantId && o.Id == orderId);
-
-            if (order == null)
-            {
-                throw new KeyNotFoundException("Order not found.");
-            }
-
-            return order;
         }
 
         public async Task<List<Order>?> GetOrdersByCustomerAsync(Guid tenantId, Guid customerId)
@@ -37,55 +30,34 @@ namespace FluxifyAPI.Repository
                 .ToListAsync();
         }
 
-        public async Task<List<Order>?> GetOrdersByTenantAsync(Guid tenantId)
+        public IQueryable<Order> GetOrdersByTenantQuery(Guid tenantId)
         {
-            return await _context.Orders
+            return _context.Orders
                 .Include(o => o.OrderItems)
                 .Where(o => o.TenantId == tenantId)
+                .AsNoTracking();
+        }
+
+        public async Task<List<Order>?> GetOrdersByTenantAsync(Guid tenantId)
+        {
+            return await GetOrdersByTenantQuery(tenantId)
                 .OrderByDescending(o => o.CreatedAt)
                 .ToListAsync();
         }
 
-        public async Task<Order> CreateOrderAsync(Guid tenantId, Guid customerId, List<OrderItem> orderItems, decimal totalAmount)
+        public async Task<Order> CreateOrderAsync(Order order)
         {
-            var order = new Order
-            {
-                Id = Guid.NewGuid(),
-                TenantId = tenantId,
-                CustomerId = customerId,
-                Status = "Pending",
-                PaymentStatus = "Pending",
-                TotalAmount = totalAmount,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            foreach (var item in orderItems)
-            {
-                item.Id = Guid.NewGuid();
-                item.OrderId = order.Id;
-            }
-
-            order.OrderItems = orderItems;
-
             await _context.Orders.AddAsync(order);
             await _context.SaveChangesAsync();
-
             return order;
         }
 
-        public async Task<Order?> UpdateOrderStatusAsync(Guid tenantId, Guid orderId, string newStatus)
+        public async Task<Order> UpdateOrderAsync(Order order)
         {
-            var order = await _context.Orders
-                .FirstOrDefaultAsync(o => o.TenantId == tenantId && o.Id == orderId);
+            if (_context.Entry(order).State == EntityState.Detached)
+                _context.Orders.Attach(order);
 
-            if (order == null)
-            {
-                return null;
-            }
-
-            order.Status = newStatus;
             await _context.SaveChangesAsync();
-
             return order;
         }
 

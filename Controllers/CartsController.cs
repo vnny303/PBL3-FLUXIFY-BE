@@ -1,9 +1,6 @@
-using FluxifyAPI.Data;
 using FluxifyAPI.DTOs.Cart;
-using FluxifyAPI.Mapper;
-using FluxifyAPI.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using FluxifyAPI.IServices;
 
 namespace FluxifyAPI.Controllers
 {
@@ -11,23 +8,21 @@ namespace FluxifyAPI.Controllers
     [ApiController]
     public class CartsController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly ICartService _cartService;
 
-        public CartsController(AppDbContext context)
+        public CartsController(ICartService cartService)
         {
-            _context = context;
+            _cartService = cartService;
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<CartDto>>> GetCarts(Guid tenantId, Guid customerId)
         {
-            var carts = await _context.Carts
-                .Where(c => c.TenantId == tenantId && c.CustomerId == customerId)
-                .Include(c => c.CartItems)
-                    .ThenInclude(ci => ci.ProductSku)
-                .ToListAsync();
+            var result = await _cartService.GetCartsAsync(tenantId, customerId);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
 
-            return Ok(carts.Select(c => c.ToCartDto()));
+            return StatusCode(result.StatusCode, result.Data);
         }
 
         [HttpPost]
@@ -36,27 +31,11 @@ namespace FluxifyAPI.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            if (createDto.TenantId.HasValue && createDto.TenantId.Value != tenantId)
-                return BadRequest(new { message = "TenantId trong body không khớp route" });
+            var result = await _cartService.CreateCartAsync(tenantId, customerId, createDto);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
 
-            if (createDto.CustomerId.HasValue && createDto.CustomerId.Value != customerId)
-                return BadRequest(new { message = "CustomerId trong body không khớp route" });
-
-            if (await _context.Customers.FirstOrDefaultAsync(c => c.Id == customerId) == null)
-                return NotFound(new { message = "Customer không tồn tại" });
-
-            if (await _context.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId) == null)
-                return NotFound(new { message = "Tenant không tồn tại" });
-
-            if (await _context.Carts.FirstOrDefaultAsync(c => c.TenantId == tenantId && c.CustomerId == customerId) != null)
-                return BadRequest(new { message = "Customer đã có giỏ hàng" });
-
-            var cart = createDto.ToCartFromCreateDto(tenantId, customerId);
-
-            await _context.Carts.AddAsync(cart);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetCarts), new { tenantId, customerId }, cart.ToCartDto());
+            return CreatedAtAction(nameof(GetCarts), new { tenantId, customerId }, result.Data);
         }
     }
 }

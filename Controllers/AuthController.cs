@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using FluxifyAPI.DTOs;
 using System.Security.Claims;
 using FluxifyAPI.DTOs.Customer;
-using FluxifyAPI.Services.Interfaces;
+using FluxifyAPI.IServices;
 
 namespace FluxifyAPI.Controllers
 {
@@ -77,28 +77,47 @@ namespace FluxifyAPI.Controllers
         [Authorize]
         public IActionResult GetCurrentUser()
         {
-            var userId = User.FindFirstValue("userId");
-            var email = User.FindFirstValue("email");
-            var role = User.FindFirstValue("role");
-            var tenantId = User.FindFirstValue("tenantId");
+            var userId = User.FindFirst("userId")?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var email = User.FindFirst("email")?.Value
+                ?? User.FindFirst(ClaimTypes.Email)?.Value;
+            var role = User.FindFirst("role")?.Value
+                ?? User.FindFirst(ClaimTypes.Role)?.Value;
+            var tenantId = User.FindFirst("tenantId")?.Value;
 
-            return Ok(new
-            {
-                userId,
-                email,
-                role,
-                tenantId
-            });
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(email) || string.IsNullOrEmpty(role))
+                return Unauthorized(new { message = "Token không hợp lệ" });
+
+            if (role != "customer" && role != "merchant")
+                return Unauthorized(new { message = "Role không hợp lệ trong token" });
+            if (role == "customer")
+                return Ok(new
+                {
+                    userId,
+                    email,
+                    role,
+                    tenantId
+                });
+            else // merchant
+                return Ok(new
+                {
+                    userId,
+                    email,
+                    role
+                });
         }
         [HttpPut("customer/{customerId}")]
         [Authorize(Roles = "customer")]
-        public async Task<IActionResult> UpdateCustomer([FromQuery] string subdomain, [FromBody] UpdateCustomerRequestDto request)
+        public async Task<IActionResult> UpdateCustomer(Guid customerId, [FromQuery] string subdomain, [FromBody] UpdateCustomerRequestDto request)
         {
             var userIdFromToken = User.FindFirst("userId")?.Value;
-            if (string.IsNullOrEmpty(userIdFromToken))
+            if (string.IsNullOrEmpty(userIdFromToken) || !Guid.TryParse(userIdFromToken, out var customerIdFromToken))
                 return Unauthorized(new { message = "Token không hợp lệ" });
 
-            var result = await _authService.UpdateCustomerAsync(subdomain, userIdFromToken, request);
+            if (customerIdFromToken != customerId)
+                return StatusCode(403, new { message = "Bạn không có quyền cập nhật tài khoản này" });
+
+            var result = await _authService.UpdateCustomerAsync(subdomain, customerIdFromToken, request);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
 

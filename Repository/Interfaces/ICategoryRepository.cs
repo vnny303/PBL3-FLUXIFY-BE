@@ -9,9 +9,10 @@ namespace FluxifyAPI.Interfaces
     public interface ICategoryRepository
     {
         public Task<Category?> GetCategoryAsync(Guid tenantId, Guid categoryId);
-        public Task<List<Category>?> GetCategoriesByTenantAsync(Guid tenantId);
-        public Task<Category> CreateCategoryAsync(Guid tenantId, string name, string description);
-        public Task<Category?> UpdateCategoryAsync(Guid tenantId, Guid categoryId, string name, string description);
+        public IQueryable<Category> GetCategoriesByTenant(Guid tenantId);
+        public Task<IEnumerable<Category>?> GetCategoriesByTenantAsync(Guid tenantId);
+        public Task<Category> CreateCategoryAsync(Category category);
+        public Task<Category> UpdateCategoryAsync(Category category);
         public Task<Category?> DeleteCategoryAsync(Guid tenantId, Guid categoryId);
     }
 }

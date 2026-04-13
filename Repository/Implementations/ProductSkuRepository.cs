@@ -21,7 +21,7 @@ namespace FluxifyAPI.Repository
                 .FirstOrDefaultAsync(ps => ps.Id == productSkuId && ps.Product.TenantId == tenantId);
         }
 
-        public async Task<List<ProductSku>?> GetProductSkusByProductAsync(Guid tenantId, Guid productId)
+        public async Task<IEnumerable<ProductSku>?> GetProductSkusByProductAsync(Guid tenantId, Guid productId)
         {
             return await _context.ProductSkus
                 .Include(ps => ps.Product)
@@ -29,50 +29,20 @@ namespace FluxifyAPI.Repository
                 .ToListAsync();
         }
 
-        public async Task<ProductSku> CreateProductSkuAsync(Guid tenantId, Guid productId, string skuCode, decimal price, int stock)
+        public async Task<ProductSku> CreateProductSkuAsync(ProductSku productSku)
         {
-            _ = skuCode;
-
-            var productBelongsToTenant = await _context.Products
-                .AnyAsync(p => p.Id == productId && p.TenantId == tenantId);
-
-            if (!productBelongsToTenant)
-            {
-                throw new KeyNotFoundException("Product not found for tenant.");
-            }
-
-            var sku = new ProductSku
-            {
-                Id = Guid.NewGuid(),
-                ProductId = productId,
-                Price = price,
-                Stock = stock
-            };
-
-            await _context.ProductSkus.AddAsync(sku);
+            await _context.ProductSkus.AddAsync(productSku);
             await _context.SaveChangesAsync();
-
-            return sku;
+            return productSku;
         }
 
-        public async Task<ProductSku?> UpdateProductSkuAsync(Guid tenantId, Guid productSkuId, string skuCode, decimal price, int stock)
+        public async Task<ProductSku> UpdateProductSkuAsync(ProductSku productSku)
         {
-            _ = skuCode;
-
-            var sku = await _context.ProductSkus
-                .Include(ps => ps.Product)
-                .FirstOrDefaultAsync(ps => ps.Id == productSkuId && ps.Product.TenantId == tenantId);
-
-            if (sku == null)
-            {
-                return null;
-            }
-
-            sku.Price = price;
-            sku.Stock = stock;
+            if (_context.Entry(productSku).State == EntityState.Detached)
+                _context.ProductSkus.Attach(productSku);
 
             await _context.SaveChangesAsync();
-            return sku;
+            return productSku;
         }
 
         public async Task<ProductSku?> DeleteProductSkuAsync(Guid tenantId, Guid productSkuId)

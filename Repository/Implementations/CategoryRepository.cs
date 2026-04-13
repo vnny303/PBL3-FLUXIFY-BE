@@ -20,45 +20,31 @@ namespace FluxifyAPI.Repository
                 .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.Id == categoryId);
         }
 
-        public async Task<List<Category>?> GetCategoriesByTenantAsync(Guid tenantId)
+        public IQueryable<Category> GetCategoriesByTenant(Guid tenantId)
         {
-            return await _context.Categories
+            return _context.Categories
                 .Where(c => c.TenantId == tenantId)
-                .ToListAsync();
+                .AsNoTracking();
         }
 
-        public async Task<Category> CreateCategoryAsync(Guid tenantId, string name, string description)
+        public async Task<IEnumerable<Category>?> GetCategoriesByTenantAsync(Guid tenantId)
         {
-            var category = new Category
-            {
-                Id = Guid.NewGuid(),
-                TenantId = tenantId,
-                Name = name,
-                Description = description,
-                IsActive = true
-            };
+            return await GetCategoriesByTenant(tenantId).ToListAsync();
+        }
 
+        public async Task<Category> CreateCategoryAsync(Category category)
+        {
             await _context.Categories.AddAsync(category);
             await _context.SaveChangesAsync();
-
             return category;
         }
 
-        public async Task<Category?> UpdateCategoryAsync(Guid tenantId, Guid categoryId, string name, string description)
+        public async Task<Category> UpdateCategoryAsync(Category category)
         {
-            var category = await _context.Categories
-                .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.Id == categoryId);
-
-            if (category == null)
-            {
-                return null;
-            }
-
-            category.Name = name;
-            category.Description = description;
+            if (_context.Entry(category).State == EntityState.Detached)
+                _context.Categories.Attach(category);
 
             await _context.SaveChangesAsync();
-
             return category;
         }
 

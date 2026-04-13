@@ -1,26 +1,37 @@
-using FluxifyAPI.Data;
 using FluxifyAPI.DTOs;
 using FluxifyAPI.DTOs.Customer;
-using FluxifyAPI.Models;
-using FluxifyAPI.Services.Common;
-using FluxifyAPI.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
+using FluxifyAPI.Interfaces;
+using FluxifyAPI.Mapper;
+using FluxifyAPI.IServices;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace FluxifyAPI.Services.Implementations
+namespace FluxifyAPI.Services
 {
     public class AuthService : IAuthService
     {
-        private readonly AppDbContext _context;
+        private readonly IPlatformUserRepository _platformUserRepository;
+        private readonly ITenantRepository _tenantRepository;
+        private readonly ICustomerRepository _customerRepository;
         private readonly IConfiguration _config;
 
-        public AuthService(AppDbContext context, IConfiguration config)
+        public AuthService(
+            IPlatformUserRepository platformUserRepository,
+            ITenantRepository tenantRepository,
+            ICustomerRepository customerRepository,
+            IConfiguration config)
         {
-            _context = context;
+            _platformUserRepository = platformUserRepository;
+            _tenantRepository = tenantRepository;
+            _customerRepository = customerRepository;
             _config = config;
+        }
+
+        private static string NormalizeSubdomain(string subdomain)
+        {
+            return subdomain.Trim().ToLowerInvariant();
         }
 
         private string GenerateToken(IEnumerable<Claim> claims)
@@ -42,34 +53,20 @@ namespace FluxifyAPI.Services.Implementations
 
         public async Task<ServiceResult<object>> RegisterMerchantAsync(RegisterMerchantRequest request)
         {
-            if (await _context.PlatformUsers.AnyAsync(u => u.Email == request.Email))
+            var normalizedSubdomain = NormalizeSubdomain(request.Subdomain);
+
+            if (await _platformUserRepository.PlatformUserEmailExistsAsync(request.Email))
                 return ServiceResult<object>.Fail(400, "Email đã tồn tại!");
 
-            if (await _context.Tenants.AnyAsync(t => t.Subdomain == request.Subdomain.ToLower()))
+            if (await _tenantRepository.GetTenantBySubdomainAsync(normalizedSubdomain) != null)
                 return ServiceResult<object>.Fail(400, "Tên cửa hàng đã có người dùng!");
 
-            var user = new PlatformUser
-            {
-                Id = Guid.NewGuid(),
-                Fullname = request.FullName,
-                Email = request.Email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                Role = "merchant",
-                IsActive = true,
-                CreatedAt = DateTime.Now
-            };
-            _context.PlatformUsers.Add(user);
+            var user = request.ToPlatformUserFromRegisterDto();
+            await _platformUserRepository.CreatePlatformUserAsync(user);
 
-            var tenant = new Tenant
-            {
-                Id = Guid.NewGuid(),
-                OwnerId = user.Id,
-                Subdomain = request.Subdomain.ToLower(),
-                StoreName = request.StoreName,
-                IsActive = true
-            };
-            _context.Tenants.Add(tenant);
-            await _context.SaveChangesAsync();
+            var tenant = request.ToTenantFromRegisterDto(user.Id);
+            tenant.Subdomain = normalizedSubdomain;
+            await _tenantRepository.CreateTenantAsync(tenant);
 
             var token = GenerateToken([
                 new Claim("userId", user.Id.ToString()),
@@ -91,18 +88,21 @@ namespace FluxifyAPI.Services.Implementations
 
         public async Task<ServiceResult<object>> LoginMerchantAsync(LoginRequest request)
         {
-            var user = await _context.PlatformUsers
-                .Include(u => u.Tenants)
-                .FirstOrDefaultAsync(u => u.Email == request.Email && u.Role == "merchant");
+            var user = await _platformUserRepository.GetMerchantByEmailAsync(request.Email);
 
             if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
                 return ServiceResult<object>.Fail(401, "Email hoặc mật khẩu không đúng!");
 
-            var token = GenerateToken([
+            var firstTenantId = user.Tenants.FirstOrDefault()?.Id;
+
+            var claims = new List<Claim>
+            {
                 new Claim("userId", user.Id.ToString()),
                 new Claim("email", user.Email),
                 new Claim("role", "merchant")
-            ]);
+            };
+
+            var token = GenerateToken(claims);
 
             return ServiceResult<object>.Ok(new
             {
@@ -121,32 +121,16 @@ namespace FluxifyAPI.Services.Implementations
 
         public async Task<ServiceResult<object>> RegisterCustomerAsync(string subdomain, RegisterCustomerRequest request)
         {
-            var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.Subdomain == subdomain.ToLower());
+            var normalizedSubdomain = NormalizeSubdomain(subdomain);
+            var tenant = await _tenantRepository.GetTenantBySubdomainAsync(normalizedSubdomain);
             if (tenant == null)
                 return ServiceResult<object>.Fail(400, "Cửa hàng không tồn tại!");
 
-            if (await _context.Customers.AnyAsync(c => c.TenantId == tenant.Id && c.Email == request.Email))
+            if (await _customerRepository.GetCustomerByEmailAsync(tenant.Id, request.Email) != null)
                 return ServiceResult<object>.Fail(400, "Email đã được đăng ký!");
 
-            var customer = new Customer
-            {
-                Id = Guid.NewGuid(),
-                TenantId = tenant.Id,
-                Email = request.Email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                IsActive = true,
-                CreatedAt = DateTime.Now
-            };
-            _context.Customers.Add(customer);
-
-            var cart = new Cart
-            {
-                Id = Guid.NewGuid(),
-                CustomerId = customer.Id,
-                TenantId = tenant.Id,
-            };
-            _context.Carts.Add(cart);
-            await _context.SaveChangesAsync();
+            var customer = request.ToCustomerFromRegisterDto(tenant.Id);
+            await _customerRepository.CreateCustomerAsync(customer);
 
             var token = GenerateToken([
                 new Claim("userId", customer.Id.ToString()),
@@ -169,12 +153,12 @@ namespace FluxifyAPI.Services.Implementations
 
         public async Task<ServiceResult<object>> LoginCustomerAsync(string subdomain, LoginRequest request)
         {
-            var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.Subdomain == subdomain.ToLower());
+            var normalizedSubdomain = NormalizeSubdomain(subdomain);
+            var tenant = await _tenantRepository.GetTenantBySubdomainAsync(normalizedSubdomain);
             if (tenant == null)
                 return ServiceResult<object>.Fail(400, "Cửa hàng không tồn tại!");
 
-            var customer = await _context.Customers
-                .FirstOrDefaultAsync(c => c.TenantId == tenant.Id && c.Email == request.Email);
+            var customer = await _customerRepository.GetCustomerByEmailAsync(tenant.Id, request.Email);
 
             if (customer == null || !BCrypt.Net.BCrypt.Verify(request.Password, customer.PasswordHash))
                 return ServiceResult<object>.Fail(401, "Email hoặc mật khẩu không đúng!");
@@ -198,25 +182,39 @@ namespace FluxifyAPI.Services.Implementations
             });
         }
 
-        public async Task<ServiceResult<object>> UpdateCustomerAsync(string subdomain, string userIdFromToken, UpdateCustomerRequestDto request)
+        public async Task<ServiceResult<object>> UpdateCustomerAsync(string subdomain, Guid customerId, UpdateCustomerRequestDto request)
         {
-            var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.Subdomain == subdomain.ToLower());
+            var normalizedSubdomain = NormalizeSubdomain(subdomain);
+            var tenant = await _tenantRepository.GetTenantBySubdomainAsync(normalizedSubdomain);
             if (tenant == null)
                 return ServiceResult<object>.Fail(400, "Cửa hàng không tồn tại!");
 
-            var customer = await _context.Customers
-                .FirstOrDefaultAsync(c => c.Id.ToString() == userIdFromToken && c.TenantId == tenant.Id);
+            var customer = await _customerRepository.GetCustomerAsync(tenant.Id, customerId);
 
             if (customer == null)
                 return ServiceResult<object>.Fail(404, "Khách hàng không tồn tại trong hệ thống của cửa hàng này!");
 
-            if (!BCrypt.Net.BCrypt.Verify(request.OldPass, customer.PasswordHash))
+            if (string.IsNullOrWhiteSpace(request.OldPass) || !BCrypt.Net.BCrypt.Verify(request.OldPass, customer.PasswordHash))
                 return ServiceResult<object>.Fail(400, "Mật khẩu cũ không đúng!");
 
-            customer.Email = request.Email;
-            customer.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+            if (!string.IsNullOrWhiteSpace(request.Email))
+            {
+                var normalizedEmail = request.Email.Trim();
 
-            await _context.SaveChangesAsync();
+                if (!string.Equals(normalizedEmail, customer.Email, StringComparison.OrdinalIgnoreCase))
+                {
+                    var existingCustomer = await _customerRepository.GetCustomerByEmailAsync(tenant.Id, normalizedEmail);
+                    if (existingCustomer != null && existingCustomer.Id != customer.Id)
+                        return ServiceResult<object>.Fail(400, "Email đã được đăng ký!");
+                }
+
+                customer.Email = normalizedEmail;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Password))
+                customer.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+
+            await _customerRepository.UpdateCustomerAsync(customer);
 
             return ServiceResult<object>.Ok(new
             {

@@ -1,11 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using FluxifyAPI.DTOs.Tenant;
-using FluxifyAPI.Mapper;
-using FluxifyAPI.Models;
 using System.Security.Claims;
 using FluxifyAPI.Helpers;
-using FluxifyAPI.Services.Interfaces;
+using FluxifyAPI.IServices;
 
 namespace FluxifyAPI.Controllers
 {
@@ -21,11 +19,6 @@ namespace FluxifyAPI.Controllers
             _tenantService = tenantService;
         }
 
-        private static string NormalizeSubdomain(string subdomain)
-        {
-            return subdomain.Trim().ToLowerInvariant();
-        }
-
         // GET: api/tenants/me
         [HttpGet("me")]
         public async Task<IActionResult> GetMyTenants([FromQuery] QueryTenant query)
@@ -38,17 +31,11 @@ namespace FluxifyAPI.Controllers
                 return Unauthorized(new { message = "Token không hợp lệ hoặc thiếu userId claim" });
 
             var result = await _tenantService.GetMyTenantsAsync(ownerId, query);
-            return Ok(result.Data);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
+
+            return StatusCode(result.StatusCode, result.Data);
         }
-        // // GET: api/tenants
-        // [HttpGet]
-        // public async Task<IActionResult> GetTenants()
-        // {
-        //     var tenants = await _tenantRepository.GetTenantsByPlatformUserAsync(Guid.Empty); // Lấy tất cả tenant mà không phân biệt chủ sở hữu
-
-        //     return Ok(tenants.Select(t => t.ToTenantDto()));
-        // }
-
         // GET: api/tenants/{id}
         [HttpGet("{id}")]
         public async Task<ActionResult<TenantDto>> GetTenant(Guid id)

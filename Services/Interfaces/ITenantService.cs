@@ -1,8 +1,8 @@
 using FluxifyAPI.DTOs.Tenant;
 using FluxifyAPI.Helpers;
-using FluxifyAPI.Services.Common;
+using FluxifyAPI.Services;
 
-namespace FluxifyAPI.Services.Interfaces
+namespace FluxifyAPI.IServices
 {
     public interface ITenantService
     {

@@ -44,9 +44,7 @@ namespace FluxifyAPI.Repository
                 .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.CustomerId == customerId);
 
             if (cart == null)
-            {
                 return null;
-            }
 
             _context.Carts.Remove(cart);
             await _context.SaveChangesAsync();

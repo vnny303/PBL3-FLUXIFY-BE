@@ -10,9 +10,10 @@ namespace FluxifyAPI.Interfaces
     {
         public Task<Product?> GetProductAsync(Guid tenantId, Guid productId);
         public Task<Product?> GetProductByCategoryAsync(Guid tenantId, Guid categoryId);
+        public IQueryable<Product> GetProductsByTenant(Guid tenantId);
         public Task<List<Product>?> GetProductsByTenantAsync(Guid tenantId);
-        public Task<Product> CreateProductAsync(Guid tenantId, string name, string description);
-        public Task<Product?> UpdateProductAsync(Guid tenantId, Guid productId, string name, string description);
+        public Task<Product> CreateProductAsync(Product product);
+        public Task<Product> UpdateProductAsync(Product product);
         public Task<Product?> DeleteProductAsync(Guid tenantId, Guid productId);
     }
 }

@@ -5,8 +5,8 @@ using Scalar.AspNetCore;
 using FluxifyAPI.Data;
 using FluxifyAPI.Interfaces;
 using FluxifyAPI.Repository;
-using FluxifyAPI.Services.Implementations;
-using FluxifyAPI.Services.Interfaces;
+using FluxifyAPI.IServices;
+using FluxifyAPI.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using System.Text.Json;
@@ -45,6 +45,13 @@ builder.Services.AddScoped<ITenantRepository, TenantRepository>();
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITenantService, TenantService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddScoped<ICartService, CartService>();
+builder.Services.AddScoped<ICartItemService, CartItemService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IProductService, ProductService>();
 
 // JWT Authentication
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
@@ -56,6 +63,8 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    options.MapInboundClaims = false;
+
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -64,7 +73,9 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
         ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
+        NameClaimType = "email",
+        RoleClaimType = "role"
     };
 
     options.Events = new JwtBearerEvents
@@ -79,7 +90,7 @@ builder.Services.AddAuthentication(options =>
             await context.Response.WriteAsync(
                 JsonSerializer.Serialize(new
                 {
-                    // status = 401,
+                    status = 401,
                     message = "Token không hợp lệ"
                 }));
         }

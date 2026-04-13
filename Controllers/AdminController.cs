@@ -1,8 +1,5 @@
-using FluxifyAPI.Data;
-using FluxifyAPI.Models;
-using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using FluxifyAPI.IServices;
 
 namespace FluxifyAPI.Controllers
 {
@@ -12,42 +9,30 @@ namespace FluxifyAPI.Controllers
     [ApiController]
     public class AdminController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly IAdminService _adminService;
 
-        public AdminController(AppDbContext context)
+        public AdminController(IAdminService adminService)
         {
-            _context = context;
+            _adminService = adminService;
         }
         [HttpGet("platformUsers")]
-        public async Task<List<PlatformUser>> GetAllPlatformUsers()
+        public async Task<IActionResult> GetAllPlatformUsers()
         {
-            return await _context.PlatformUsers
-                .AsSplitQuery()
-                .Include(p => p.Tenants)
-                    .ThenInclude(t => t.Categories)
-                        .ThenInclude(c => c.Products)
-                            .ThenInclude(p => p.ProductSkus)
-                .Include(p => p.Tenants)
-                    .ThenInclude(t => t.Customers)
-                        .ThenInclude(c => c.Cart)
-                            .ThenInclude(cart => cart.CartItems)
-                .Include(p => p.Tenants)
-                    .ThenInclude(t => t.Customers)
-                        .ThenInclude(c => c.Orders)
-                            .ThenInclude(o => o.OrderItems)
-                .ToListAsync();
+            var result = await _adminService.GetAllPlatformUsersAsync();
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
+
+            return StatusCode(result.StatusCode, result.Data);
         }
+
         [HttpDelete("platformUsers/{id}")]
         public async Task<IActionResult> DeletePlatformUser(Guid id)
         {
-            var platformUser = await _context.PlatformUsers.FindAsync(id);
-            if (platformUser == null)
-                return NotFound("Id người dùng không hợp lệ");
+            var result = await _adminService.DeletePlatformUserAsync(id);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
 
-            _context.PlatformUsers.Remove(platformUser);
-            await _context.SaveChangesAsync();
-
-            return Ok(platformUser);
+            return StatusCode(result.StatusCode, result.Data);
         }
     }
 }

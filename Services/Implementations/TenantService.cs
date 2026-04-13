@@ -2,10 +2,10 @@ using FluxifyAPI.DTOs.Tenant;
 using FluxifyAPI.Helpers;
 using FluxifyAPI.Interfaces;
 using FluxifyAPI.Mapper;
-using FluxifyAPI.Services.Common;
-using FluxifyAPI.Services.Interfaces;
+using FluxifyAPI.IServices;
+using Microsoft.EntityFrameworkCore;
 
-namespace FluxifyAPI.Services.Implementations
+namespace FluxifyAPI.Services
 {
     public class TenantService : ITenantService
     {
@@ -23,7 +23,54 @@ namespace FluxifyAPI.Services.Implementations
 
         public async Task<ServiceResult<IEnumerable<object>>> GetMyTenantsAsync(Guid ownerId, QueryTenant query)
         {
-            var tenants = await _tenantRepository.GetTenantsByPlatformUserAsync(ownerId, query);
+            query ??= new QueryTenant();
+
+            var tenantQuery = _tenantRepository.GetTenantsByPlatformUser(ownerId);
+
+            var searchTerm = query.NormalizedSearchTerm;
+            if (!string.IsNullOrEmpty(searchTerm))
+            {
+                if (Guid.TryParse(searchTerm, out var tenantId))
+                    tenantQuery = tenantQuery.Where(t => t.StoreName.Contains(searchTerm) || t.Subdomain.Contains(searchTerm) || t.Id == tenantId);
+                else
+                    tenantQuery = tenantQuery.Where(t => t.StoreName.Contains(searchTerm) || t.Subdomain.Contains(searchTerm));
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.StoreName))
+            {
+                var storeName = query.StoreName.Trim();
+                tenantQuery = tenantQuery.Where(t => t.StoreName.Contains(storeName));
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.Subdomain))
+            {
+                var subdomain = query.Subdomain.Trim();
+                tenantQuery = tenantQuery.Where(t => t.Subdomain.Contains(subdomain));
+            }
+
+            if (query.IsActive.HasValue)
+                tenantQuery = tenantQuery.Where(t => t.IsActive == query.IsActive.Value);
+
+            var sortBy = query.SortBy?.Trim();
+            var isDescending = query.NormalizedIsDescending;
+            var normalizedSortBy = sortBy?.ToLowerInvariant();
+
+            if (normalizedSortBy == "storename" || normalizedSortBy == "store_name")
+                tenantQuery = isDescending ? tenantQuery.OrderByDescending(t => t.StoreName) : tenantQuery.OrderBy(t => t.StoreName);
+            else if (normalizedSortBy == "subdomain")
+                tenantQuery = isDescending ? tenantQuery.OrderByDescending(t => t.Subdomain) : tenantQuery.OrderBy(t => t.Subdomain);
+            else if (normalizedSortBy == "isactive" || normalizedSortBy == "is_active")
+                tenantQuery = isDescending ? tenantQuery.OrderByDescending(t => t.IsActive) : tenantQuery.OrderBy(t => t.IsActive);
+            else if (normalizedSortBy == "id")
+                tenantQuery = isDescending ? tenantQuery.OrderByDescending(t => t.Id) : tenantQuery.OrderBy(t => t.Id);
+            else
+                tenantQuery = tenantQuery.OrderBy(t => t.Id);
+
+            var pageNumber = query.NormalizedPageNumber;
+            var pageSize = query.NormalizedPageSize;
+            var skipNumber = (pageNumber - 1) * pageSize;
+
+            var tenants = await tenantQuery.Skip(skipNumber).Take(pageSize).ToListAsync();
             return ServiceResult<IEnumerable<object>>.Ok(tenants.Select(t => t.ToOverallTenantDto()));
         }
 

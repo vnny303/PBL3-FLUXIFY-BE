@@ -28,53 +28,30 @@ namespace FluxifyAPI.Repository
                 .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.CategoryId == categoryId);
         }
 
-        public async Task<List<Product>?> GetProductsByTenantAsync(Guid tenantId)
+        public IQueryable<Product> GetProductsByTenant(Guid tenantId)
         {
-            return await _context.Products
+            return _context.Products
                 .Include(p => p.ProductSkus)
                 .Where(p => p.TenantId == tenantId)
-                .ToListAsync();
+                .AsNoTracking();
         }
 
-        public async Task<Product> CreateProductAsync(Guid tenantId, string name, string description)
+        public async Task<List<Product>?> GetProductsByTenantAsync(Guid tenantId)
         {
-            var defaultCategoryId = await _context.Categories
-                .Where(c => c.TenantId == tenantId)
-                .Select(c => c.Id)
-                .FirstOrDefaultAsync();
+            return await GetProductsByTenant(tenantId).ToListAsync();
+        }
 
-            if (defaultCategoryId == Guid.Empty)
-            {
-                throw new InvalidOperationException("Tenant does not have a category to attach product.");
-            }
-
-            var product = new Product
-            {
-                Id = Guid.NewGuid(),
-                TenantId = tenantId,
-                CategoryId = defaultCategoryId,
-                Name = name,
-                Description = description
-            };
-
+        public async Task<Product> CreateProductAsync(Product product)
+        {
             await _context.Products.AddAsync(product);
             await _context.SaveChangesAsync();
-
             return product;
         }
 
-        public async Task<Product?> UpdateProductAsync(Guid tenantId, Guid productId, string name, string description)
+        public async Task<Product> UpdateProductAsync(Product product)
         {
-            var product = await _context.Products
-                .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == productId);
-
-            if (product == null)
-            {
-                return null;
-            }
-
-            product.Name = name;
-            product.Description = description;
+            if (_context.Entry(product).State == EntityState.Detached)
+                _context.Products.Attach(product);
 
             await _context.SaveChangesAsync();
             return product;

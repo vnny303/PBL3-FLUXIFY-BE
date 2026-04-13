@@ -14,12 +14,10 @@ namespace FluxifyAPI.Repository
             _context = context;
         }
 
-        public async Task<List<CartItem>?> GetCartItemsAsync(Guid tenantId, Guid customerId)
+        public async Task<IEnumerable<CartItem>?> GetCartItemsAsync(Guid tenantId, Guid customerId)
         {
             return await _context.CartItems
-                .Include(ci => ci.Cart)
                 .Include(ci => ci.ProductSku)
-                    .ThenInclude(ps => ps.Product)
                 .Where(ci => ci.Cart.CustomerId == customerId && ci.Cart.TenantId == tenantId)
                 .ToListAsync();
         }

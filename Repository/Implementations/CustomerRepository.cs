@@ -1,5 +1,4 @@
 using FluxifyAPI.Data;
-using FluxifyAPI.DTOs.Customer;
 using FluxifyAPI.Interfaces;
 using FluxifyAPI.Models;
 using Microsoft.EntityFrameworkCore;
@@ -17,9 +16,7 @@ namespace FluxifyAPI.Repository
         public async Task<Customer> CreateCustomerAsync(Customer customer)
         {
             if (customer.Id == Guid.Empty)
-            {
                 customer.Id = Guid.NewGuid();
-            }
 
             var cart = new Cart
             {
@@ -75,7 +72,18 @@ namespace FluxifyAPI.Repository
             return customer;
         }
 
-        public async Task<List<Customer>> GetCustomersBySubdomainAsync(string subdomain)
+        public async Task<Customer> UpdateCustomerAsync(Customer customer)
+        {
+            if (_context.Entry(customer).State == EntityState.Detached)
+            {
+                _context.Customers.Attach(customer);
+            }
+
+            await _context.SaveChangesAsync();
+            return customer;
+        }
+
+        public async Task<IEnumerable<Customer>> GetCustomersBySubdomainAsync(string subdomain)
         {
             var tenant = await _context.Tenants.FirstOrDefaultAsync(t => t.Subdomain == subdomain);
             if (tenant == null)
@@ -89,7 +97,7 @@ namespace FluxifyAPI.Repository
             return customers;
         }
 
-        public async Task<List<Customer>> GetCustomersByTenantAsync(Guid tenantId)
+        public async Task<IEnumerable<Customer>> GetCustomersByTenantAsync(Guid tenantId)
         {
             var customers = await _context.Customers
                                 .Include(c => c.Cart)
@@ -97,31 +105,6 @@ namespace FluxifyAPI.Repository
                                 .Where(c => c.TenantId == tenantId)
                                 .ToListAsync();
             return customers;
-        }
-
-        public async Task<Customer?> UpdateCustomerAsync(Guid tenantId, Guid customerId, UpdateCustomerRequestDto customer)
-        {
-            var existingCustomer = await _context.Customers.FirstOrDefaultAsync(c => c.Id == customerId && c.TenantId == tenantId);
-            if (existingCustomer == null)
-                return null;
-
-            if (!string.IsNullOrWhiteSpace(customer.Email))
-            {
-                existingCustomer.Email = customer.Email;
-            }
-
-            if (!string.IsNullOrWhiteSpace(customer.Password))
-            {
-                existingCustomer.PasswordHash = BCrypt.Net.BCrypt.HashPassword(customer.Password);
-            }
-
-            if (customer.IsActive.HasValue)
-            {
-                existingCustomer.IsActive = customer.IsActive;
-            }
-
-            await _context.SaveChangesAsync();
-            return existingCustomer;
         }
     }
 }

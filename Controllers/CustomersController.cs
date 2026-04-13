@@ -2,8 +2,7 @@ using FluxifyAPI.DTOs.Customer;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
-using FluxifyAPI.Interfaces;
-using FluxifyAPI.Mapper;
+using FluxifyAPI.IServices;
 
 namespace FluxifyAPI.Controllers
 {
@@ -12,13 +11,11 @@ namespace FluxifyAPI.Controllers
     [ApiController]
     public class CustomersController : ControllerBase
     {
-        private readonly ICustomerRepository _customerRepository;
-        private readonly ITenantRepository _tenantRepository;
+        private readonly ICustomerService _customerService;
 
-        public CustomersController(ICustomerRepository customerRepository, ITenantRepository tenantRepository)
+        public CustomersController(ICustomerService customerService)
         {
-            _customerRepository = customerRepository;
-            _tenantRepository = tenantRepository;
+            _customerService = customerService;
         }
 
         // GET: api/tenants/{tenantId}/customers
@@ -29,15 +26,11 @@ namespace FluxifyAPI.Controllers
             if (!Guid.TryParse(userIdClaim, out var userId))
                 return Unauthorized(new { message = "Token không hợp lệ" });
 
-            var tenant = await _tenantRepository.GetTenantAsync(tenantId);
-            if (tenant == null)
-                return NotFound(new { message = "Tenant không tồn tại" });
+            var result = await _customerService.GetCustomersAsync(tenantId, userId);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
 
-            if (tenant.OwnerId != userId)
-                return Forbid();
-
-            var customers = await _customerRepository.GetCustomersByTenantAsync(tenantId);
-            return Ok(customers.Select(c => c.ToCustomerDto()));
+            return StatusCode(result.StatusCode, result.Data);
         }
 
         // GET: api/tenants/{tenantId}/customers/{customerId}
@@ -48,18 +41,11 @@ namespace FluxifyAPI.Controllers
             if (!Guid.TryParse(userIdClaim, out var userId))
                 return Unauthorized(new { message = "Token không hợp lệ" });
 
-            var tenant = await _tenantRepository.GetTenantAsync(tenantId);
-            if (tenant == null)
-                return NotFound(new { message = "Tenant không tồn tại" });
+            var result = await _customerService.GetCustomerAsync(tenantId, customerId, userId);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
 
-            if (tenant.OwnerId != userId)
-                return Forbid();
-
-            var customer = await _customerRepository.GetCustomerAsync(tenantId, customerId);
-            if (customer == null)
-                return NotFound(new { message = "Customer không tồn tại" });
-
-            return Ok(customer.ToCustomerDto());
+            return StatusCode(result.StatusCode, result.Data);
         }
         // GET: api/subdomain/{subdomain}/customers/{customerId} (COI LẠI)
         // GET: api/tenants/{tenantId}/customers/email/{email}
@@ -70,18 +56,11 @@ namespace FluxifyAPI.Controllers
             if (!Guid.TryParse(userIdClaim, out var userId))
                 return Unauthorized(new { message = "Token không hợp lệ" });
 
-            var tenant = await _tenantRepository.GetTenantAsync(tenantId);
-            if (tenant == null)
-                return NotFound(new { message = "Tenant không tồn tại" });
+            var result = await _customerService.GetCustomerByEmailAsync(tenantId, email, userId);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
 
-            if (tenant.OwnerId != userId)
-                return Forbid();
-
-            var customer = await _customerRepository.GetCustomerByEmailAsync(tenantId, email);
-            if (customer == null)
-                return NotFound(new { message = "Customer không tồn tại" });
-
-            return Ok(customer.ToCustomerDto());
+            return StatusCode(result.StatusCode, result.Data);
         }
         // GET: api/tenants/{tenantId}/customers/cart/{cartId}
         [HttpGet("cart/{cartId}")]
@@ -91,18 +70,11 @@ namespace FluxifyAPI.Controllers
             if (!Guid.TryParse(userIdClaim, out var userId))
                 return Unauthorized(new { message = "Token không hợp lệ" });
 
-            var tenant = await _tenantRepository.GetTenantAsync(tenantId);
-            if (tenant == null)
-                return NotFound(new { message = "Tenant không tồn tại" });
+            var result = await _customerService.GetCustomerByCartAsync(tenantId, cartId, userId);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
 
-            if (tenant.OwnerId != userId)
-                return Forbid();
-
-            var customer = await _customerRepository.GetCustomerByCartAsync(tenantId, cartId);
-            if (customer == null)
-                return NotFound(new { message = "Customer không tồn tại" });
-
-            return Ok(customer.ToCustomerDto());
+            return StatusCode(result.StatusCode, result.Data);
         }
         // POST: api/tenants/{tenantId}/customers
         [HttpPost]
@@ -112,28 +84,17 @@ namespace FluxifyAPI.Controllers
             if (!Guid.TryParse(userIdClaim, out var userId))
                 return Unauthorized(new { message = "Token không hợp lệ" });
 
-            var tenant = await _tenantRepository.GetTenantAsync(tenantId);
-            if (tenant == null)
-                return NotFound(new { message = "Tenant không tồn tại" });
-
-            if (tenant.OwnerId != userId)
-                return Forbid();
-
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var existingCustomer = await _customerRepository.GetCustomerByEmailAsync(tenantId, customerDto.Email);
-            if (existingCustomer != null)
-                return BadRequest(new { message = "Email đã được đăng ký trong cửa hàng này" });
-
-            var customer = customerDto.ToCustomerFromCreateDto(tenantId);
-
-            var createdCustomer = await _customerRepository.CreateCustomerAsync(customer);
+            var result = await _customerService.CreateCustomerAsync(tenantId, customerDto, userId);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
 
             return CreatedAtAction(
                 nameof(GetCustomer),
-                new { tenantId, customerId = createdCustomer.Id },
-                createdCustomer.ToCustomerDto());
+                new { tenantId, customerId = result.Data!.Id },
+                result.Data);
         }
         // PUT: api/tenants/{tenantId}/customers/{customerId}
         [HttpPut("{customerId}")]
@@ -143,25 +104,14 @@ namespace FluxifyAPI.Controllers
             if (!Guid.TryParse(userIdClaim, out var userId))
                 return Unauthorized(new { message = "Token không hợp lệ" });
 
-            var tenant = await _tenantRepository.GetTenantAsync(tenantId);
-            if (tenant == null)
-                return NotFound(new { message = "Tenant không tồn tại" });
-
-            if (tenant.OwnerId != userId)
-                return Forbid();
-
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var existingCustomer = await _customerRepository.GetCustomerAsync(tenantId, customerId);
-            if (existingCustomer == null)
-                return NotFound(new { message = "Customer không tồn tại" });
+            var result = await _customerService.UpdateCustomerAsync(tenantId, customerId, customerDto, userId);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
 
-            var updatedCustomer = await _customerRepository.UpdateCustomerAsync(tenantId, customerId, customerDto);
-            if (updatedCustomer == null)
-                return NotFound(new { message = "Customer không tồn tại" });
-
-            return Ok(updatedCustomer.ToCustomerDto());
+            return StatusCode(result.StatusCode, result.Data);
         }
         // DELETE: api/tenants/{tenantId}/customers/{customerId}
         [HttpDelete("{customerId}")]
@@ -171,19 +121,14 @@ namespace FluxifyAPI.Controllers
             if (!Guid.TryParse(userIdClaim, out var userId))
                 return Unauthorized(new { message = "Token không hợp lệ" });
 
-            var tenant = await _tenantRepository.GetTenantAsync(tenantId);
-            if (tenant == null)
-                return NotFound(new { message = "Tenant không tồn tại" });
+            var result = await _customerService.DeleteCustomerAsync(tenantId, customerId, userId);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
 
-            if (tenant.OwnerId != userId)
-                return Forbid();
+            if (result.StatusCode == 204)
+                return NoContent();
 
-            var existingCustomer = await _customerRepository.GetCustomerAsync(tenantId, customerId);
-            if (existingCustomer == null)
-                return NotFound(new { message = "Customer không tồn tại" });
-
-            await _customerRepository.DeleteCustomerAsync(tenantId, customerId);
-            return NoContent();
+            return StatusCode(result.StatusCode, result.Data);
         }
     }
 }

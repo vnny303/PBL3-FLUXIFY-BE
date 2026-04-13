@@ -1,4 +1,4 @@
-namespace FluxifyAPI.Services.Common
+namespace FluxifyAPI.Services
 {
     public class ServiceResult<T>
     {
