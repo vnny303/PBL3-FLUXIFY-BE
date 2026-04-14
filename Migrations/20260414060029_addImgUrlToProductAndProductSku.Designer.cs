@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FluxifyAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260410040423_addImgUrlToProductAndSku")]
-    partial class addImgUrlToProductAndSku
+    [Migration("20260414060029_addImgUrlToProductAndProductSku")]
+    partial class addImgUrlToProductAndProductSku
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
