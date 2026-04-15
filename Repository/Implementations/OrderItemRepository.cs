@@ -3,7 +3,8 @@ using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace FluxifyAPI.Repository.Implementations {
+namespace FluxifyAPI.Repository.Implementations
+{
     public class OrderItemRepository : IOrderItemRepository
     {
         private readonly AppDbContext _context;
@@ -20,9 +21,7 @@ namespace FluxifyAPI.Repository.Implementations {
                 .FirstOrDefaultAsync(oi => oi.Id == orderItemId && oi.Order.TenantId == tenantId);
 
             if (orderItem == null)
-            {
                 throw new KeyNotFoundException("Order item not found.");
-            }
 
             return orderItem;
         }

@@ -2,8 +2,11 @@ using FluxifyAPI.Data;
 using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using FluxifyAPI.DTOs.Cart;
+using FluxifyAPI.Mapper;
 
-namespace FluxifyAPI.Repository.Implementations {
+namespace FluxifyAPI.Repository.Implementations
+{
     public class CartRepository : ICartRepository
     {
         private readonly AppDbContext _context;
@@ -21,36 +24,24 @@ namespace FluxifyAPI.Repository.Implementations {
                 .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.CustomerId == customerId);
         }
 
-        public async Task<Cart> CreateCartAsync(Guid tenantId, Guid customerId)
+        public async Task<Cart> CreateCartAsync(CreateCartRequestDto createDto)
         {
-            var cart = new Cart
-            {
-                Id = Guid.NewGuid(),
-                TenantId = tenantId,
-                CustomerId = customerId
-            };
-
+            var cart = createDto.ToCartFromCreateDto();
             await _context.Carts.AddAsync(cart);
             await _context.SaveChangesAsync();
 
             return cart;
         }
-
-        public async Task<Cart?> DeleteCartAsync(Guid tenantId, Guid customerId)
+        public async Task<bool> CartExists(Guid tenantId, Guid customerId)
         {
-            var cart = await _context.Carts
+            return await _context.Carts.AnyAsync(c => c.TenantId == tenantId && c.CustomerId == customerId);
+        }
+
+        public async Task<bool> CartContainsProductSku(Guid tenantId, Guid userId, Guid productSkuId)
+        {
+            return await _context.Carts
                 .Include(c => c.CartItems)
-                .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.CustomerId == customerId);
-
-            if (cart == null)
-                return null;
-
-            _context.Carts.Remove(cart);
-            await _context.SaveChangesAsync();
-
-            return cart;
+                .AnyAsync(c => c.TenantId == tenantId && c.CustomerId == userId && c.CartItems.Any(ci => ci.ProductSkuId == productSkuId));
         }
     }
 }
-
-

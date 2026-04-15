@@ -27,7 +27,6 @@ namespace FluxifyAPI.Controllers
             var result = await _authService.RegisterMerchantAsync(request);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return StatusCode(result.StatusCode, result.Data);
         }
 
@@ -40,7 +39,6 @@ namespace FluxifyAPI.Controllers
             var result = await _authService.LoginMerchantAsync(request);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return StatusCode(result.StatusCode, result.Data);
         }
 
@@ -53,7 +51,6 @@ namespace FluxifyAPI.Controllers
             var result = await _authService.RegisterCustomerAsync(subdomain, request);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return StatusCode(result.StatusCode, result.Data);
         }
 
@@ -66,7 +63,6 @@ namespace FluxifyAPI.Controllers
             var result = await _authService.LoginCustomerAsync(subdomain, request);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return StatusCode(result.StatusCode, result.Data);
         }
 

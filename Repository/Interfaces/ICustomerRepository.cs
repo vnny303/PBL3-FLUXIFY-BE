@@ -12,5 +12,6 @@ namespace FluxifyAPI.Repository.Interfaces
         Task<Customer> CreateCustomerAsync(Customer customer);
         Task<Customer> UpdateCustomerAsync(Customer customer);
         Task<Customer?> DeleteCustomerAsync(Guid tenantId, Guid customerId);
+        Task<bool> CustomerExists(Guid tenantId, Guid customerId);
     }
 }

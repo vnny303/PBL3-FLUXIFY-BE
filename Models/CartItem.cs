@@ -15,7 +15,7 @@ namespace FluxifyAPI.Models
         [Column("product_sku_id")]
         public Guid ProductSkuId { get; set; }
         [Column("quantity")]
-        public int Quantity { get; set; }
+        public int Quantity { get; set; } = 0;
         [JsonIgnore]
         public Cart Cart { get; set; } = null!;
         [JsonIgnore]

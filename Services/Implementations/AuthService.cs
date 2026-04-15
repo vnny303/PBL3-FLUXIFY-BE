@@ -9,7 +9,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace FluxifyAPI.Services.Implementations {
+namespace FluxifyAPI.Services.Implementations
+{
     public class AuthService : IAuthService
     {
         private readonly IPlatformUserRepository _platformUserRepository;
@@ -55,7 +56,7 @@ namespace FluxifyAPI.Services.Implementations {
         {
             var normalizedSubdomain = NormalizeSubdomain(request.Subdomain);
 
-            if (await _platformUserRepository.PlatformUserEmailExistsAsync(request.Email))
+            if (await _platformUserRepository.PlatformUserEmailExists(request.Email))
                 return ServiceResult<object>.Fail(400, "Email đã tồn tại!");
 
             if (await _tenantRepository.GetTenantBySubdomainAsync(normalizedSubdomain) != null)

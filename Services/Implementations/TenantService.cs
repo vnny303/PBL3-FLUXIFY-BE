@@ -42,16 +42,13 @@ namespace FluxifyAPI.Services.Implementations
                 var storeName = query.StoreName.Trim();
                 tenantQuery = tenantQuery.Where(t => t.StoreName.Contains(storeName));
             }
-
             if (!string.IsNullOrWhiteSpace(query.Subdomain))
             {
                 var subdomain = query.Subdomain.Trim();
                 tenantQuery = tenantQuery.Where(t => t.Subdomain.Contains(subdomain));
             }
-
             if (query.IsActive.HasValue)
                 tenantQuery = tenantQuery.Where(t => t.IsActive == query.IsActive.Value);
-
             var sortBy = query.SortBy;
             var isDescending = string.Equals(query.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
             switch (sortBy?.ToLowerInvariant())

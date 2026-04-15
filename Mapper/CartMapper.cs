@@ -9,13 +9,13 @@ namespace FluxifyAPI.Mapper
 {
     public static class CartMapper
     {
-        public static Cart ToCartFromCreateDto(this CreateCartRequestDto createDto, Guid tenantId, Guid customerId)
+        public static Cart ToCartFromCreateDto(this CreateCartRequestDto createDto)
         {
             return new Cart
             {
                 Id = Guid.NewGuid(),
-                TenantId = tenantId,
-                CustomerId = customerId
+                TenantId = createDto.TenantId,
+                CustomerId = createDto.CustomerId
             };
         }
 
@@ -51,10 +51,13 @@ namespace FluxifyAPI.Mapper
             };
         }
 
-        public static CartItem ToCartItemFromUpdateDto(this UpdateCartItemRequestDto updateDto, CartItem existingCartItem)
+        public static CartItem ToCartItemFromUpdateDto(this UpdateCartItemRequestDto updateDto, Guid cartItemId)
         {
-            existingCartItem.Quantity = updateDto.Quantity;
-            return existingCartItem;
+            return new CartItem
+            {
+                Id = cartItemId,
+                Quantity = updateDto.Quantity
+            };
         }
     }
 }

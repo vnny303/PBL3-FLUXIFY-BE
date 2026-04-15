@@ -54,7 +54,7 @@ namespace FluxifyAPI.Repository.Implementations
                 .FirstOrDefaultAsync(p => p.Email == email && p.Role == "merchant");
         }
 
-        public async Task<bool> PlatformUserEmailExistsAsync(string email)
+        public async Task<bool> PlatformUserEmailExists(string email)
         {
             return await _context.PlatformUsers.AnyAsync(p => p.Email == email);
         }
@@ -69,6 +69,8 @@ namespace FluxifyAPI.Repository.Implementations
 
         public async Task<PlatformUser> UpdatePlatformUserAsync(PlatformUser platformUser)
         {
+            if (_context.Entry(platformUser).State == EntityState.Detached)
+                _context.PlatformUsers.Attach(platformUser);
             _context.PlatformUsers.Update(platformUser);
             await _context.SaveChangesAsync();
             return platformUser;

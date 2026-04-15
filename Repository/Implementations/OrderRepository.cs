@@ -49,7 +49,6 @@ namespace FluxifyAPI.Repository.Implementations
         {
             if (_context.Entry(order).State == EntityState.Detached)
                 _context.Orders.Attach(order);
-
             await _context.SaveChangesAsync();
             return order;
         }

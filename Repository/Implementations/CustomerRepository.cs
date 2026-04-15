@@ -75,10 +75,7 @@ namespace FluxifyAPI.Repository.Implementations
         public async Task<Customer> UpdateCustomerAsync(Customer customer)
         {
             if (_context.Entry(customer).State == EntityState.Detached)
-            {
                 _context.Customers.Attach(customer);
-            }
-
             await _context.SaveChangesAsync();
             return customer;
         }
@@ -99,6 +96,11 @@ namespace FluxifyAPI.Repository.Implementations
         public IQueryable<Customer> GetCustomer(Guid tenantId)
         {
             return _context.Customers.Where(c => c.TenantId == tenantId).AsQueryable();
+        }
+
+        public async Task<bool> CustomerExists(Guid tenantId, Guid customerId)
+        {
+            return await _context.Customers.AnyAsync(c => c.Id == customerId && c.TenantId == tenantId);
         }
     }
 }

@@ -25,15 +25,12 @@ namespace FluxifyAPI.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-
             var userIdClaim = User.FindFirstValue("userId");
             if (!Guid.TryParse(userIdClaim, out var ownerId))
                 return Unauthorized(new { message = "Token không hợp lệ hoặc thiếu userId claim" });
-
             var result = await _tenantService.GetMyTenantsAsync(ownerId, query);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return StatusCode(result.StatusCode, result.Data);
         }
         // GET: api/tenants/{id}
@@ -43,11 +40,9 @@ namespace FluxifyAPI.Controllers
             var userIdClaim = User.FindFirstValue("userId");
             if (!Guid.TryParse(userIdClaim, out var ownerId))
                 return Unauthorized(new { message = "Token không hợp lệ hoặc thiếu userId claim" });
-
             var result = await _tenantService.GetTenantAsync(id, ownerId);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return Ok(result.Data);
         }
 
@@ -59,7 +54,6 @@ namespace FluxifyAPI.Controllers
             var result = await _tenantService.GetTenantBySubdomainAsync(subdomain);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return Ok(result.Data);
         }
 
@@ -73,11 +67,9 @@ namespace FluxifyAPI.Controllers
             var userIdClaim = User.FindFirstValue("userId");
             if (!Guid.TryParse(userIdClaim, out var ownerId))
                 return Unauthorized(new { message = "Token không hợp lệ hoặc thiếu userId claim" });
-
             var result = await _tenantService.CreateTenantAsync(ownerId, tenantDto);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return StatusCode(result.StatusCode, result.Data);
         }
 
@@ -91,11 +83,9 @@ namespace FluxifyAPI.Controllers
             var userIdClaim = User.FindFirstValue("userId");
             if (!Guid.TryParse(userIdClaim, out var ownerId))
                 return Unauthorized(new { message = "Token không hợp lệ hoặc thiếu userId claim" });
-
             var result = await _tenantService.UpdateTenantAsync(id, ownerId, tenantDto);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return Ok(result.Data);
         }
 
@@ -106,11 +96,9 @@ namespace FluxifyAPI.Controllers
             var userIdClaim = User.FindFirstValue("userId");
             if (!Guid.TryParse(userIdClaim, out var ownerId))
                 return Unauthorized(new { message = "Token không hợp lệ" });
-
             var result = await _tenantService.DeleteTenantAsync(id, ownerId);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return Ok(result.Data);
         }
     }

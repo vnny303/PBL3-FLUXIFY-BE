@@ -40,7 +40,6 @@ namespace FluxifyAPI.Repository.Implementations
         {
             if (_context.Entry(productSku).State == EntityState.Detached)
                 _context.ProductSkus.Attach(productSku);
-
             await _context.SaveChangesAsync();
             return productSku;
         }
@@ -60,6 +59,13 @@ namespace FluxifyAPI.Repository.Implementations
             await _context.SaveChangesAsync();
 
             return sku;
+        }
+
+        public async Task<bool> ProductSkuExists(Guid tenantId, Guid productSkuId)
+        {
+            return await _context.ProductSkus
+                .Include(ps => ps.Product)
+                .AnyAsync(ps => ps.Id == productSkuId && ps.Product.TenantId == tenantId);
         }
     }
 }

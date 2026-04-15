@@ -51,6 +51,8 @@ namespace FluxifyAPI.Repository.Implementations
 
         public async Task<Tenant> UpdateTenantAsync(Tenant tenant)
         {
+            if (_context.Entry(tenant).State == EntityState.Detached)
+                _context.Tenants.Attach(tenant);
             await _context.SaveChangesAsync();
             return tenant;
         }
