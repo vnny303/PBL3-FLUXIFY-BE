@@ -1,9 +1,10 @@
 using FluxifyAPI.DTOs.Cart;
-using FluxifyAPI.Interfaces;
+using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Mapper;
-using FluxifyAPI.IServices;
+using FluxifyAPI.Services.Interfaces;
+using FluxifyAPI.Services.Common;
 
-namespace FluxifyAPI.Services
+namespace FluxifyAPI.Services.Implementations
 {
     public class CartService : ICartService
     {
@@ -23,6 +24,8 @@ namespace FluxifyAPI.Services
 
         public async Task<ServiceResult<IEnumerable<CartDto>>> GetCartsAsync(Guid tenantId, Guid customerId)
         {
+            if (await _customerRepository.GetCustomerAsync(tenantId, customerId) == null)
+                return ServiceResult<IEnumerable<CartDto>>.Fail(404, "Customer không tồn tại");
             var cart = await _cartRepository.GetCartAsync(tenantId, customerId);
             if (cart == null)
                 return ServiceResult<IEnumerable<CartDto>>.Ok(Array.Empty<CartDto>());
@@ -52,3 +55,7 @@ namespace FluxifyAPI.Services
         }
     }
 }
+
+
+
+

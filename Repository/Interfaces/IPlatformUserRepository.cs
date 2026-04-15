@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using FluxifyAPI.Models;
 
-namespace FluxifyAPI.Interfaces
+namespace FluxifyAPI.Repository.Interfaces
 {
     public interface IPlatformUserRepository
     {
@@ -18,3 +18,4 @@ namespace FluxifyAPI.Interfaces
         Task<PlatformUser?> DeletePlatformUserAsync(Guid platformUserId);
     }
 }
+

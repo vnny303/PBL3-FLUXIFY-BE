@@ -1,7 +1,7 @@
 using FluxifyAPI.DTOs.Cart;
-using FluxifyAPI.Services;
+using FluxifyAPI.Services.Common;
 
-namespace FluxifyAPI.IServices
+namespace FluxifyAPI.Services.Interfaces
 {
     public interface ICartService
     {
@@ -9,3 +9,5 @@ namespace FluxifyAPI.IServices
         Task<ServiceResult<CartDto>> CreateCartAsync(Guid tenantId, Guid customerId, CreateCartRequestDto createDto);
     }
 }
+
+

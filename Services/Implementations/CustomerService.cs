@@ -1,9 +1,11 @@
 using FluxifyAPI.DTOs.Customer;
-using FluxifyAPI.Interfaces;
+using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Mapper;
-using FluxifyAPI.IServices;
+using FluxifyAPI.Services.Interfaces;
+using FluxifyAPI.Services.Common;
+using FluxifyAPI.Helpers;
 
-namespace FluxifyAPI.Services
+namespace FluxifyAPI.Services.Implementations
 {
     public class CustomerService : ICustomerService
     {
@@ -16,21 +18,42 @@ namespace FluxifyAPI.Services
             _tenantRepository = tenantRepository;
         }
 
-        public async Task<ServiceResult<IEnumerable<CustomerDto>>> GetCustomersAsync(Guid tenantId, Guid ownerId)
+        public async Task<ServiceResult<IEnumerable<CustomerDto>>> GetCustomersAsync(Guid tenantId, Guid ownerId, QueryCustomer query)
         {
-            var tenantResult = await IsTenantOwnerAsync(tenantId, ownerId);
-            if (!tenantResult.Success)
-                return ServiceResult<IEnumerable<CustomerDto>>.Fail(tenantResult.StatusCode, tenantResult.Message!);
+            if (!await _tenantRepository.IsTenantOwner(tenantId, ownerId))
+                return ServiceResult<IEnumerable<CustomerDto>>.Forbidden("Bạn không có quyền truy cập vào tenant này");
+            var customers = _customerRepository.GetCustomer(tenantId);
+            if (!string.IsNullOrEmpty(query.SearchTerm))
+                customers = customers.Where(c => c.Email.ToLower().Contains(query.SearchTerm.Trim().ToLower()));
+            if (!string.IsNullOrEmpty(query.Email))
+                customers = customers.Where(c => c.Email.ToLower() == query.Email.Trim().ToLower());
+            if (query.CreatedFrom.HasValue)
+                customers = customers.Where(c => c.CreatedAt >= query.CreatedFrom.Value);
+            if (query.CreatedTo.HasValue)
+                customers = customers.Where(c => c.CreatedAt <= query.CreatedTo.Value);
+            if (!string.IsNullOrEmpty(query.SortBy))
+            {
+                switch (query.SortBy.ToLower())
+                {
+                    case "email":
+                        customers = query.SortDirection == "desc" ? customers.OrderByDescending(c => c.Email) : customers.OrderBy(c => c.Email);
+                        break;
+                    case "createdat":
+                        customers = query.SortDirection == "desc" ? customers.OrderByDescending(c => c.CreatedAt) : customers.OrderBy(c => c.CreatedAt);
+                        break;
+                    default:
+                        customers = customers.OrderBy(c => c.Email); // Mặc định sắp xếp theo email
+                        break;
+                }
+            }
 
-            var customers = await _customerRepository.GetCustomersByTenantAsync(tenantId);
             return ServiceResult<IEnumerable<CustomerDto>>.Ok(customers.Select(c => c.ToCustomerDto()));
         }
 
         public async Task<ServiceResult<CustomerDto>> GetCustomerAsync(Guid tenantId, Guid customerId, Guid ownerId)
         {
-            var tenantResult = await IsTenantOwnerAsync(tenantId, ownerId);
-            if (!tenantResult.Success)
-                return ServiceResult<CustomerDto>.Fail(tenantResult.StatusCode, tenantResult.Message!);
+            if (!await _tenantRepository.IsTenantOwner(tenantId, ownerId))
+                return ServiceResult<CustomerDto>.Forbidden("Bạn không có quyền truy cập vào tenant này");
 
             var customer = await _customerRepository.GetCustomerAsync(tenantId, customerId);
             if (customer == null)
@@ -41,10 +64,8 @@ namespace FluxifyAPI.Services
 
         public async Task<ServiceResult<CustomerDto>> GetCustomerByEmailAsync(Guid tenantId, string email, Guid ownerId)
         {
-            var tenantResult = await IsTenantOwnerAsync(tenantId, ownerId);
-            if (!tenantResult.Success)
-                return ServiceResult<CustomerDto>.Fail(tenantResult.StatusCode, tenantResult.Message!);
-
+            if (!await _tenantRepository.IsTenantOwner(tenantId, ownerId))
+                return ServiceResult<CustomerDto>.Forbidden("Bạn không có quyền truy cập vào tenant này");
             var customer = await _customerRepository.GetCustomerByEmailAsync(tenantId, email);
             if (customer == null)
                 return ServiceResult<CustomerDto>.Fail(404, "Customer không tồn tại");
@@ -52,24 +73,23 @@ namespace FluxifyAPI.Services
             return ServiceResult<CustomerDto>.Ok(customer.ToCustomerDto());
         }
 
-        public async Task<ServiceResult<CustomerDto>> GetCustomerByCartAsync(Guid tenantId, Guid cartId, Guid ownerId)
-        {
-            var tenantResult = await IsTenantOwnerAsync(tenantId, ownerId);
-            if (!tenantResult.Success)
-                return ServiceResult<CustomerDto>.Fail(tenantResult.StatusCode, tenantResult.Message!);
+        // public async Task<ServiceResult<CustomerDto>> GetCustomerByCartAsync(Guid tenantId, Guid cartId, Guid ownerId)
+        // {
+        //     var tenantResult = await _tenantRepository.IsTenantOwner(tenantId, ownerId);
+        //     if (!await _tenantRepository.IsTenantOwner(tenantId, ownerId))
+        //         return ServiceResult<CustomerDto>.Forbidden("Bạn không có quyền truy cập vào tenant này");
 
-            var customer = await _customerRepository.GetCustomerByCartAsync(tenantId, cartId);
-            if (customer == null)
-                return ServiceResult<CustomerDto>.Fail(404, "Customer không tồn tại");
+        //     var customer = await _customerRepository.GetCustomerByCartAsync(tenantId, cartId);
+        //     if (customer == null)
+        //         return ServiceResult<CustomerDto>.Fail(404, "Customer không tồn tại");
 
-            return ServiceResult<CustomerDto>.Ok(customer.ToCustomerDto());
-        }
+        //     return ServiceResult<CustomerDto>.Ok(customer.ToCustomerDto());
+        // }
 
         public async Task<ServiceResult<CustomerDto>> CreateCustomerAsync(Guid tenantId, CreateCustomerRequestDto customerDto, Guid ownerId)
         {
-            var tenantResult = await IsTenantOwnerAsync(tenantId, ownerId);
-            if (!tenantResult.Success)
-                return ServiceResult<CustomerDto>.Fail(tenantResult.StatusCode, tenantResult.Message!);
+            if (!await _tenantRepository.IsTenantOwner(tenantId, ownerId))
+                return ServiceResult<CustomerDto>.Forbidden("Bạn không có quyền truy cập vào tenant này");
 
             var existingCustomer = await _customerRepository.GetCustomerByEmailAsync(tenantId, customerDto.Email);
             if (existingCustomer != null)
@@ -82,9 +102,8 @@ namespace FluxifyAPI.Services
 
         public async Task<ServiceResult<CustomerDto>> UpdateCustomerAsync(Guid tenantId, Guid customerId, UpdateCustomerRequestDto customerDto, Guid ownerId)
         {
-            var tenantResult = await IsTenantOwnerAsync(tenantId, ownerId);
-            if (!tenantResult.Success)
-                return ServiceResult<CustomerDto>.Fail(tenantResult.StatusCode, tenantResult.Message!);
+            if (!await _tenantRepository.IsTenantOwner(tenantId, ownerId))
+                return ServiceResult<CustomerDto>.Forbidden("Bạn không có quyền truy cập vào tenant này");
 
             var existingCustomer = await _customerRepository.GetCustomerAsync(tenantId, customerId);
             if (existingCustomer == null)
@@ -109,9 +128,8 @@ namespace FluxifyAPI.Services
 
         public async Task<ServiceResult<object>> DeleteCustomerAsync(Guid tenantId, Guid customerId, Guid ownerId)
         {
-            var tenantResult = await IsTenantOwnerAsync(tenantId, ownerId);
-            if (!tenantResult.Success)
-                return ServiceResult<object>.Fail(tenantResult.StatusCode, tenantResult.Message!);
+            if (!await _tenantRepository.IsTenantOwner(tenantId, ownerId))
+                return ServiceResult<object>.Forbidden("Bạn không có quyền truy cập vào tenant này");
 
             var existingCustomer = await _customerRepository.GetCustomerAsync(tenantId, customerId);
             if (existingCustomer == null)
@@ -125,17 +143,9 @@ namespace FluxifyAPI.Services
                 Data = null
             };
         }
-
-        private async Task<ServiceResult<object>> IsTenantOwnerAsync(Guid tenantId, Guid ownerId)
-        {
-            var tenant = await _tenantRepository.GetTenantAsync(tenantId);
-            if (tenant == null)
-                return ServiceResult<object>.Fail(404, "Tenant không tồn tại");
-
-            if (tenant.OwnerId != ownerId)
-                return ServiceResult<object>.Fail(403, "Bạn không có quyền truy cập tenant này");
-
-            return ServiceResult<object>.Ok(new object());
-        }
     }
 }
+
+
+
+

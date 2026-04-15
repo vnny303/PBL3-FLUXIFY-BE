@@ -1,10 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using FluxifyAPI.DTOs.Cartegory;
 using FluxifyAPI.Helpers;
-using FluxifyAPI.IServices;
+using FluxifyAPI.Services.Interfaces;
+using System.Security.Claims;
 
 namespace FluxifyAPI.Controllers
 {
+    [Authorize(Roles = "merchant")]
     [Route("api/tenants/{tenantId}/[controller]")]
     [ApiController]
     public class CategoriesController : ControllerBase
@@ -18,52 +21,59 @@ namespace FluxifyAPI.Controllers
 
         // GET
         [HttpGet]
-        public async Task<ActionResult> GetCategories(Guid tenantId, [FromQuery] QueryCategory query)
+        [AllowAnonymous]
+        public async Task<ActionResult> GetCategories([FromRoute] Guid tenantId, [FromQuery] QueryCategory query)
         {
             var result = await _categoryService.GetCategoriesAsync(tenantId, query);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
+            return StatusCode(result.StatusCode, result.Data);
+        }
+        [HttpGet("{categoryId}")]
+        [AllowAnonymous]
+        public async Task<ActionResult> GetCategoriesById([FromRoute] Guid tenantId, [FromRoute] Guid categoryId)
+        {
+            var result = await _categoryService.GetCategoryByIdAsync(tenantId, categoryId);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
             return StatusCode(result.StatusCode, result.Data);
         }
 
-        // POST - BỎ KIỂM TRA SESSION
         [HttpPost]
         public async Task<ActionResult> CreateCategory(Guid tenantId, [FromBody] CreateCategoryRequestDto createDto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-
-            var result = await _categoryService.CreateCategoryAsync(tenantId, createDto);
+            if (!Guid.TryParse(User.FindFirstValue("userId"), out var userId))
+                return Unauthorized(new { message = "Token không hợp lệ hoặc thiếu userId claim" });
+            var result = await _categoryService.CreateCategoryAsync(tenantId, userId, createDto);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return StatusCode(result.StatusCode, result.Data);
         }
-
-        // PUT - BỎ KIỂM TRA SESSION
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateCategory(Guid tenantId, Guid id, [FromBody] UpdateCategoryRequestDto updateDto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-
-            var result = await _categoryService.UpdateCategoryAsync(tenantId, id, updateDto);
+            if (!Guid.TryParse(User.FindFirstValue("userId"), out var userId))
+                return Unauthorized(new { message = "Token không hợp lệ hoặc thiếu userId claim" });
+            var result = await _categoryService.UpdateCategoryAsync(tenantId, userId, id, updateDto);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return StatusCode(result.StatusCode, result.Data);
         }
 
-        // DELETE - BỎ KIỂM TRA SESSION
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCategory(Guid tenantId, Guid id)
         {
-            var result = await _categoryService.DeleteCategoryAsync(tenantId, id);
+            if (!Guid.TryParse(User.FindFirstValue("userId"), out var userId))
+                return Unauthorized(new { message = "Token không hợp lệ hoặc thiếu userId claim" });
+            var result = await _categoryService.DeleteCategoryAsync(tenantId, userId, id);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return StatusCode(result.StatusCode, result.Data);
         }
     }
 }
+

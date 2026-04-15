@@ -1,4 +1,4 @@
-﻿namespace FluxifyAPI.DTOs
+namespace FluxifyAPI.DTOs
 {
     public class RegisterCustomerRequest
     {
@@ -6,3 +6,4 @@
         public string Password { get; set; } = string.Empty;
     }
 }
+

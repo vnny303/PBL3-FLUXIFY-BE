@@ -17,3 +17,4 @@ namespace FluxifyAPI.DTOs.Order
         public decimal UnitPrice { get; set; }
     }
 }
+

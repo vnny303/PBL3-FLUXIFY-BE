@@ -1,8 +1,9 @@
 using FluxifyAPI.DTOs.Cart;
-using FluxifyAPI.Interfaces;
-using FluxifyAPI.IServices;
+using FluxifyAPI.Repository.Interfaces;
+using FluxifyAPI.Services.Interfaces;
+using FluxifyAPI.Services.Common;
 
-namespace FluxifyAPI.Services
+namespace FluxifyAPI.Services.Implementations
 {
     public class CartItemService : ICartItemService
     {
@@ -47,7 +48,7 @@ namespace FluxifyAPI.Services
             if (customer == null)
                 return ServiceResult<object>.Fail(404, "Không tìm thấy khách hàng!");
 
-            var sku = await _productSkuRepository.GetProductSkuAsync(tenantId, createDto.ProductSkuId);
+            var sku = await _productSkuRepository.GetProductSkusAsync(tenantId, createDto.ProductSkuId);
             if (sku == null)
                 return ServiceResult<object>.Fail(404, "Không tìm thấy SKU sản phẩm!");
 
@@ -81,7 +82,7 @@ namespace FluxifyAPI.Services
             if (currentItem == null)
                 return ServiceResult<object>.Fail(404, "Không tìm thấy sản phẩm trong giỏ hàng!");
 
-            var sku = await _productSkuRepository.GetProductSkuAsync(tenantId, currentItem.ProductSkuId);
+            var sku = await _productSkuRepository.GetProductSkusAsync(tenantId, currentItem.ProductSkuId);
             if (sku != null && sku.Stock < updateDto.Quantity)
                 return ServiceResult<object>.Fail(400, $"SKU chỉ còn {sku.Stock} trong kho!");
 
@@ -127,3 +128,7 @@ namespace FluxifyAPI.Services
         }
     }
 }
+
+
+
+

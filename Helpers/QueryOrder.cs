@@ -4,11 +4,8 @@ namespace FluxifyAPI.Helpers
 {
     public class QueryOrder : QueryBase
     {
-        [FromQuery(Name = "tenantId")]
-        public Guid? TenantId { get; set; }
-
         [FromQuery(Name = "customerId")]
-        public Guid? CustomerId { get; set; }
+        public Guid? CustomerId { get; set; } // TODO: đổi thành Name, Phone, Email,...
 
         [FromQuery(Name = "status")]
         public string? Status { get; set; }
@@ -32,3 +29,5 @@ namespace FluxifyAPI.Helpers
         public DateTime? CreatedTo { get; set; }
     }
 }
+
+

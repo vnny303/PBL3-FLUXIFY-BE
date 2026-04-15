@@ -1,11 +1,12 @@
 using FluxifyAPI.DTOs.Tenant;
 using FluxifyAPI.Helpers;
-using FluxifyAPI.Interfaces;
+using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Mapper;
-using FluxifyAPI.IServices;
+using FluxifyAPI.Services.Interfaces;
+using FluxifyAPI.Services.Common;
 using Microsoft.EntityFrameworkCore;
 
-namespace FluxifyAPI.Services
+namespace FluxifyAPI.Services.Implementations
 {
     public class TenantService : ITenantService
     {
@@ -20,14 +21,14 @@ namespace FluxifyAPI.Services
         {
             return subdomain.Trim().ToLowerInvariant();
         }
-
         public async Task<ServiceResult<IEnumerable<object>>> GetMyTenantsAsync(Guid ownerId, QueryTenant query)
         {
             query ??= new QueryTenant();
-
             var tenantQuery = _tenantRepository.GetTenantsByPlatformUser(ownerId);
+            if (!tenantQuery.Any())
+                return ServiceResult<IEnumerable<object>>.Ok(Enumerable.Empty<object>());
 
-            var searchTerm = query.NormalizedSearchTerm;
+            var searchTerm = query.SearchTerm;
             if (!string.IsNullOrEmpty(searchTerm))
             {
                 if (Guid.TryParse(searchTerm, out var tenantId))
@@ -51,53 +52,54 @@ namespace FluxifyAPI.Services
             if (query.IsActive.HasValue)
                 tenantQuery = tenantQuery.Where(t => t.IsActive == query.IsActive.Value);
 
-            var sortBy = query.SortBy?.Trim();
-            var isDescending = query.NormalizedIsDescending;
-            var normalizedSortBy = sortBy?.ToLowerInvariant();
+            var sortBy = query.SortBy;
+            var isDescending = string.Equals(query.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+            switch (sortBy?.ToLowerInvariant())
+            {
+                case "storename":
+                case "store_name":
+                    tenantQuery = isDescending ? tenantQuery.OrderByDescending(t => t.StoreName) : tenantQuery.OrderBy(t => t.StoreName);
+                    break;
+                case "subdomain":
+                    tenantQuery = isDescending ? tenantQuery.OrderByDescending(t => t.Subdomain) : tenantQuery.OrderBy(t => t.Subdomain);
+                    break;
+                case "isactive":
+                case "is_active":
+                    tenantQuery = isDescending ? tenantQuery.OrderByDescending(t => t.IsActive) : tenantQuery.OrderBy(t => t.IsActive);
+                    break;
+                case "id":
+                    tenantQuery = isDescending ? tenantQuery.OrderByDescending(t => t.Id) : tenantQuery.OrderBy(t => t.Id);
+                    break;
+                default:
+                    tenantQuery = tenantQuery.OrderBy(t => t.Id);
+                    break;
+            }
 
-            if (normalizedSortBy == "storename" || normalizedSortBy == "store_name")
-                tenantQuery = isDescending ? tenantQuery.OrderByDescending(t => t.StoreName) : tenantQuery.OrderBy(t => t.StoreName);
-            else if (normalizedSortBy == "subdomain")
-                tenantQuery = isDescending ? tenantQuery.OrderByDescending(t => t.Subdomain) : tenantQuery.OrderBy(t => t.Subdomain);
-            else if (normalizedSortBy == "isactive" || normalizedSortBy == "is_active")
-                tenantQuery = isDescending ? tenantQuery.OrderByDescending(t => t.IsActive) : tenantQuery.OrderBy(t => t.IsActive);
-            else if (normalizedSortBy == "id")
-                tenantQuery = isDescending ? tenantQuery.OrderByDescending(t => t.Id) : tenantQuery.OrderBy(t => t.Id);
-            else
-                tenantQuery = tenantQuery.OrderBy(t => t.Id);
-
-            var pageNumber = query.NormalizedPageNumber;
-            var pageSize = query.NormalizedPageSize;
-            var skipNumber = (pageNumber - 1) * pageSize;
-
-            var tenants = await tenantQuery.Skip(skipNumber).Take(pageSize).ToListAsync();
+            var skipNumber = (query.Page - 1) * query.PageSize;
+            var tenants = await tenantQuery.Skip(skipNumber).Take(query.PageSize).ToListAsync();
             return ServiceResult<IEnumerable<object>>.Ok(tenants.Select(t => t.ToOverallTenantDto()));
         }
 
         public async Task<ServiceResult<TenantDto>> GetTenantAsync(Guid id, Guid ownerId)
         {
-            var tenant = await _tenantRepository.GetTenantByOwnerAsync(id, ownerId);
-            if (tenant == null)
-                return ServiceResult<TenantDto>.Fail(404, "Bạn không có quyền truy cập cửa hàng này hoặc cửa hàng không tồn tại.");
-
+            if (await _tenantRepository.TenantExists(id) || await _tenantRepository.IsTenantOwner(id, ownerId))
+                return ServiceResult<TenantDto>.Forbidden("Bạn không có quyền truy cập tenant này");
+            var tenant = await _tenantRepository.GetTenantAsync(id);
             return ServiceResult<TenantDto>.Ok(tenant.ToTenantDto());
         }
 
         public async Task<ServiceResult<TenantDto>> GetTenantBySubdomainAsync(string subdomain)
         {
-            var tenant = await _tenantRepository.GetTenantBySubdomainAsync(NormalizeSubdomain(subdomain));
-            if (tenant == null)
+            if (!await _tenantRepository.SubdomainExists(NormalizeSubdomain(subdomain)))
                 return ServiceResult<TenantDto>.Fail(404, "Tenant không tồn tại");
-
+            var tenant = await _tenantRepository.GetTenantBySubdomainAsync(NormalizeSubdomain(subdomain));
             return ServiceResult<TenantDto>.Ok(tenant.ToTenantDto());
         }
 
         public async Task<ServiceResult<object>> CreateTenantAsync(Guid ownerId, CreateTenantRequestDto tenantDto)
         {
-            var normalizedSubdomain = NormalizeSubdomain(tenantDto.Subdomain);
-            if (await _tenantRepository.GetTenantBySubdomainAsync(normalizedSubdomain) != null)
+            if (await _tenantRepository.SubdomainExists(NormalizeSubdomain(tenantDto.Subdomain)))
                 return ServiceResult<object>.Fail(409, "Subdomain đã tồn tại");
-
             var tenant = tenantDto.ToTenantFromCreateDto(ownerId);
             await _tenantRepository.CreateTenantAsync(tenant);
 
@@ -106,27 +108,17 @@ namespace FluxifyAPI.Services
 
         public async Task<ServiceResult<object>> UpdateTenantAsync(Guid id, Guid ownerId, UpdateTenantRequestDto tenantDto)
         {
-            var tenant = await _tenantRepository.GetTenantByOwnerAsync(id, ownerId);
-            if (tenant == null)
-            {
-                if (await _tenantRepository.TenantExists(id))
-                    return ServiceResult<object>.Fail(403, "Bạn không có quyền cập nhật tenant này");
-
-                return ServiceResult<object>.Fail(404, "Tenant không tồn tại");
-            }
-
+            if (await _tenantRepository.TenantExists(id) || await _tenantRepository.IsTenantOwner(id, ownerId))
+                return ServiceResult<object>.Forbidden("Bạn không có quyền cập nhật tenant này");
+            var tenant = await _tenantRepository.GetTenantAsync(id);
             if (!string.IsNullOrWhiteSpace(tenantDto.Subdomain))
             {
-                var normalizedSubdomain = NormalizeSubdomain(tenantDto.Subdomain);
-                if (await _tenantRepository.SubdomainExists(normalizedSubdomain, id))
+                if (await _tenantRepository.SubdomainExists(NormalizeSubdomain(tenantDto.Subdomain)))
                     return ServiceResult<object>.Fail(409, "Subdomain đã tồn tại");
-
-                tenant.Subdomain = normalizedSubdomain;
+                tenant.Subdomain = NormalizeSubdomain(tenantDto.Subdomain);
             }
-
             if (tenantDto.StoreName != null)
                 tenant.StoreName = tenantDto.StoreName.Trim();
-
             if (tenantDto.IsActive.HasValue)
                 tenant.IsActive = tenantDto.IsActive;
 
@@ -136,14 +128,14 @@ namespace FluxifyAPI.Services
 
         public async Task<ServiceResult<object>> DeleteTenantAsync(Guid id, Guid ownerId)
         {
-            if (!await _tenantRepository.TenantExists(id))
-                return ServiceResult<object>.Fail(404, "Tenant không tồn tại");
-
-            if (!await _tenantRepository.IsTenantOwner(id, ownerId))
-                return ServiceResult<object>.Fail(403, "Bạn không có quyền xóa tenant này");
-
+            if (await _tenantRepository.TenantExists(id) || await _tenantRepository.IsTenantOwner(id, ownerId))
+                return ServiceResult<object>.Forbidden("Bạn không có quyền xóa tenant này");
             await _tenantRepository.DeleteTenantAsync(id);
             return ServiceResult<object>.Ok(new { message = "Xóa tenant thành công" });
         }
     }
 }
+
+
+
+

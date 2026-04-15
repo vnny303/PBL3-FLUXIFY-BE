@@ -4,15 +4,16 @@ using System.Linq;
 using System.Threading.Tasks;
 using FluxifyAPI.Models;
 
-namespace FluxifyAPI.Interfaces
+namespace FluxifyAPI.Repository.Interfaces
 {
     public interface ICategoryRepository
     {
-        public Task<Category?> GetCategoryAsync(Guid tenantId, Guid categoryId);
-        public IQueryable<Category> GetCategoriesByTenant(Guid tenantId);
-        public Task<IEnumerable<Category>?> GetCategoriesByTenantAsync(Guid tenantId);
-        public Task<Category> CreateCategoryAsync(Category category);
-        public Task<Category> UpdateCategoryAsync(Category category);
-        public Task<Category?> DeleteCategoryAsync(Guid tenantId, Guid categoryId);
+        Task<Category?> GetCategoryAsync(Guid tenantId, Guid categoryId);
+        IQueryable<Category> GetCategoriesByTenant(Guid tenantId);
+        Task<Category> CreateCategoryAsync(Category category);
+        Task<Category> UpdateCategoryAsync(Category category);
+        Task<Category?> DeleteCategoryAsync(Guid tenantId, Guid categoryId);
+        Task<bool> IsCategoryNameExists(Guid tenantId, string name);
+        Task<bool> IsCategoryExists(Guid tenantId, Guid categoryId);
     }
 }

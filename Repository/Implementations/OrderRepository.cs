@@ -1,9 +1,9 @@
 using FluxifyAPI.Data;
-using FluxifyAPI.Interfaces;
+using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace FluxifyAPI.Repository
+namespace FluxifyAPI.Repository.Implementations
 {
     public class OrderRepository : IOrderRepository
     {
@@ -21,7 +21,7 @@ namespace FluxifyAPI.Repository
                 .FirstOrDefaultAsync(o => o.TenantId == tenantId && o.Id == orderId);
         }
 
-        public async Task<List<Order>?> GetOrdersByCustomerAsync(Guid tenantId, Guid customerId)
+        public async Task<IEnumerable<Order>?> GetOrdersByCustomerAsync(Guid tenantId, Guid customerId)
         {
             return await _context.Orders
                 .Include(o => o.OrderItems)
@@ -36,13 +36,6 @@ namespace FluxifyAPI.Repository
                 .Include(o => o.OrderItems)
                 .Where(o => o.TenantId == tenantId)
                 .AsNoTracking();
-        }
-
-        public async Task<List<Order>?> GetOrdersByTenantAsync(Guid tenantId)
-        {
-            return await GetOrdersByTenantQuery(tenantId)
-                .OrderByDescending(o => o.CreatedAt)
-                .ToListAsync();
         }
 
         public async Task<Order> CreateOrderAsync(Order order)
@@ -78,3 +71,5 @@ namespace FluxifyAPI.Repository
         }
     }
 }
+
+

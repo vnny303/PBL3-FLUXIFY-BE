@@ -23,3 +23,4 @@ namespace FluxifyAPI.DTOs.PlatformUser
         public List<TenantDto> Tenants { get; set; } = new List<TenantDto>();
     }
 }
+

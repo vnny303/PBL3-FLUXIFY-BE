@@ -17,3 +17,5 @@ namespace FluxifyAPI.Helpers
         public int? QuantityTo { get; set; }
     }
 }
+
+

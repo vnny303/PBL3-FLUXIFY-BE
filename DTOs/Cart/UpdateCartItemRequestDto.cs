@@ -9,3 +9,5 @@ namespace FluxifyAPI.DTOs.Cart
         public int Quantity { get; set; }
     }
 }
+
+

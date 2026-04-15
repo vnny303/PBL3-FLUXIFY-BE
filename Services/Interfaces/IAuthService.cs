@@ -1,8 +1,8 @@
 using FluxifyAPI.DTOs;
 using FluxifyAPI.DTOs.Customer;
-using FluxifyAPI.Services;
+using FluxifyAPI.Services.Common;
 
-namespace FluxifyAPI.IServices
+namespace FluxifyAPI.Services.Interfaces
 {
     public interface IAuthService
     {
@@ -13,3 +13,5 @@ namespace FluxifyAPI.IServices
         Task<ServiceResult<object>> UpdateCustomerAsync(string subdomain, Guid customerId, UpdateCustomerRequestDto request);
     }
 }
+
+

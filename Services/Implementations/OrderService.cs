@@ -1,11 +1,12 @@
 using FluxifyAPI.DTOs.Order;
 using FluxifyAPI.Helpers;
-using FluxifyAPI.Interfaces;
+using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Mapper;
-using FluxifyAPI.IServices;
+using FluxifyAPI.Services.Interfaces;
+using FluxifyAPI.Services.Common;
 using Microsoft.EntityFrameworkCore;
 
-namespace FluxifyAPI.Services
+namespace FluxifyAPI.Services.Implementations
 {
     public class OrderService : IOrderService
     {
@@ -20,9 +21,6 @@ namespace FluxifyAPI.Services
 
         public async Task<ServiceResult<IEnumerable<OrderDto>>> GetOrdersAsync(Guid tenantId, QueryOrder query)
         {
-            if (query.TenantId.HasValue && query.TenantId.Value != tenantId)
-                return ServiceResult<IEnumerable<OrderDto>>.Fail(400, "tenantId trong query không khớp route");
-
             if (query.TotalFrom.HasValue && query.TotalTo.HasValue && query.TotalFrom.Value > query.TotalTo.Value)
                 return ServiceResult<IEnumerable<OrderDto>>.Fail(400, "totalFrom không được lớn hơn totalTo");
 
@@ -31,7 +29,7 @@ namespace FluxifyAPI.Services
 
             var orderQuery = _orderRepository.GetOrdersByTenantQuery(tenantId);
 
-            var searchTerm = query.NormalizedSearchTerm;
+            var searchTerm = query.SearchTerm;
             if (!string.IsNullOrEmpty(searchTerm))
             {
                 if (Guid.TryParse(searchTerm, out var orderOrCustomerId))
@@ -85,8 +83,8 @@ namespace FluxifyAPI.Services
             if (query.CreatedTo.HasValue)
                 orderQuery = orderQuery.Where(o => o.CreatedAt.HasValue && o.CreatedAt.Value <= query.CreatedTo.Value);
 
-            var sortBy = query.SortBy?.Trim();
-            var isDescending = query.NormalizedIsDescending;
+            var sortBy = query.SortBy;
+            var isDescending = string.Equals(query.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
             var normalizedSortBy = sortBy?.ToLowerInvariant();
 
             if (normalizedSortBy == "createdat" || normalizedSortBy == "created_at")
@@ -102,11 +100,8 @@ namespace FluxifyAPI.Services
             else
                 orderQuery = orderQuery.OrderByDescending(o => o.CreatedAt).ThenByDescending(o => o.Id);
 
-            var pageNumber = query.NormalizedPageNumber;
-            var pageSize = query.NormalizedPageSize;
-            var skipNumber = (pageNumber - 1) * pageSize;
-
-            var orders = await orderQuery.Skip(skipNumber).Take(pageSize).ToListAsync();
+            var skipNumber = (query.Page - 1) * query.PageSize;
+            var orders = await orderQuery.Skip(skipNumber).Take(query.PageSize).ToListAsync();
             return ServiceResult<IEnumerable<OrderDto>>.Ok(orders.Select(o => o.ToOrderDto()));
         }
 
@@ -165,3 +160,7 @@ namespace FluxifyAPI.Services
         }
     }
 }
+
+
+
+

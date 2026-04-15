@@ -1,11 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using FluxifyAPI.DTOs.Product;
 using FluxifyAPI.DTOs.ProductSku;
 using FluxifyAPI.Helpers;
-using FluxifyAPI.IServices;
+using FluxifyAPI.Services.Interfaces;
 
 namespace FluxifyAPI.Controllers
 {
+    [Authorize(Roles = "merchant")]
     [Route("api/tenants/{tenantId}/[controller]")]
     [ApiController]
     public class ProductsController : ControllerBase
@@ -17,29 +19,29 @@ namespace FluxifyAPI.Controllers
             _productService = productService;
         }
 
-        // ─────────────────────────────────────────────
+        // ---------------------------------------------
         // PRODUCT ENDPOINTS
-        // ─────────────────────────────────────────────
+        // ---------------------------------------------
 
-        // GET: Lay tat ca san pham (kem SKUs)
+        // GET
         [HttpGet]
+        [AllowAnonymous]
         public async Task<ActionResult> GetProducts(Guid tenantId, [FromQuery] QueryProduct query)
         {
             var result = await _productService.GetProductsAsync(tenantId, query);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return StatusCode(result.StatusCode, result.Data);
         }
 
         // GET BY ID
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<ActionResult> GetProduct(Guid tenantId, Guid id)
         {
             var result = await _productService.GetProductAsync(tenantId, id);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return StatusCode(result.StatusCode, result.Data);
         }
 
@@ -59,13 +61,14 @@ namespace FluxifyAPI.Controllers
         [HttpPost]
         public async Task<ActionResult> CreateProduct(Guid tenantId, [FromBody] CreateProductRequestDto createDto)
         {
+            var userId = User.FindFirst("userId")?.Value;
+            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userIdClaim))
+                return Unauthorized(new { message = "Token không hợp lệ" });
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-
-            var result = await _productService.CreateProductAsync(tenantId, createDto);
+            var result = await _productService.CreateProductAsync(tenantId, userIdClaim, createDto);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return StatusCode(result.StatusCode, result.Data);
         }
 
@@ -73,13 +76,14 @@ namespace FluxifyAPI.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateProduct(Guid tenantId, Guid id, [FromBody] UpdateProductRequestDto updateDto)
         {
+            var userId = User.FindFirst("userId")?.Value;
+            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userIdClaim))
+                return Unauthorized(new { message = "Token không hợp lệ" });
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-
-            var result = await _productService.UpdateProductAsync(tenantId, id, updateDto);
+            var result = await _productService.UpdateProductAsync(tenantId, userIdClaim, id, updateDto);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return StatusCode(result.StatusCode, result.Data);
         }
 
@@ -87,10 +91,12 @@ namespace FluxifyAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProduct(Guid tenantId, Guid id)
         {
-            var result = await _productService.DeleteProductAsync(tenantId, id);
+            var userId = User.FindFirst("userId")?.Value;
+            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userIdClaim))
+                return Unauthorized(new { message = "Token không hợp lệ" });
+            var result = await _productService.DeleteProductAsync(tenantId, userIdClaim, id);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return StatusCode(result.StatusCode, result.Data);
         }
 
@@ -100,12 +106,12 @@ namespace FluxifyAPI.Controllers
 
         // GET: Lay tat ca SKUs cua mot san pham
         [HttpGet("{id}/skus")]
+        [AllowAnonymous]
         public async Task<ActionResult> GetSkus(Guid tenantId, Guid id)
         {
             var result = await _productService.GetSkusAsync(tenantId, id);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return StatusCode(result.StatusCode, result.Data);
         }
 
@@ -114,13 +120,14 @@ namespace FluxifyAPI.Controllers
         [HttpPost("{id}/skus")]
         public async Task<ActionResult> CreateSku(Guid tenantId, Guid id, [FromBody] CreateProductSkuRequestDto createDto)
         {
+            var userId = User.FindFirst("userId")?.Value;
+            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userIdClaim))
+                return Unauthorized(new { message = "Token không hợp lệ" });
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-
-            var result = await _productService.CreateSkuAsync(tenantId, id, createDto);
+            var result = await _productService.CreateSkuAsync(tenantId, userIdClaim, id, createDto);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return StatusCode(result.StatusCode, result.Data);
         }
 
@@ -128,13 +135,14 @@ namespace FluxifyAPI.Controllers
         [HttpPut("{id}/skus/{skuId}")]
         public async Task<IActionResult> UpdateSku(Guid tenantId, Guid id, Guid skuId, [FromBody] UpdateProductSkuRequestDto updateDto)
         {
+            var userId = User.FindFirst("userId")?.Value;
+            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userIdClaim))
+                return Unauthorized(new { message = "Token không hợp lệ" });
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-
-            var result = await _productService.UpdateSkuAsync(tenantId, id, skuId, updateDto);
+            var result = await _productService.UpdateSkuAsync(tenantId, userIdClaim, id, skuId, updateDto);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return StatusCode(result.StatusCode, result.Data);
         }
 
@@ -142,11 +150,14 @@ namespace FluxifyAPI.Controllers
         [HttpDelete("{id}/skus/{skuId}")]
         public async Task<IActionResult> DeleteSku(Guid tenantId, Guid id, Guid skuId)
         {
-            var result = await _productService.DeleteSkuAsync(tenantId, id, skuId);
+            var userId = User.FindFirst("userId")?.Value;
+            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userIdClaim))
+                return Unauthorized(new { message = "Token không hợp lệ" });
+            var result = await _productService.DeleteSkuAsync(tenantId, userIdClaim, id, skuId);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return StatusCode(result.StatusCode, result.Data);
         }
     }
 }
+

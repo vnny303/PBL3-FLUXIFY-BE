@@ -12,3 +12,4 @@ namespace FluxifyAPI.DTOs.Cart
         public List<CartItemDto>? CartItems { get; set; } = new List<CartItemDto>();
     }
 }
+

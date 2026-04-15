@@ -38,21 +38,13 @@ namespace FluxifyAPI.Mapper
         public static Category ToCategoryFromUpdateDto(this UpdateCategoryRequestDto updateDto, Category existingCategory)
         {
             if (!string.IsNullOrWhiteSpace(updateDto.Name))
-            {
                 existingCategory.Name = updateDto.Name.Trim();
-            }
-
             if (updateDto.Description != null)
-            {
                 existingCategory.Description = updateDto.Description.Trim();
-            }
-
             if (updateDto.IsActive.HasValue)
-            {
                 existingCategory.IsActive = updateDto.IsActive.Value;
-            }
-
             return existingCategory;
         }
     }
 }
+

@@ -7,3 +7,4 @@ namespace FluxifyAPI.DTOs.Cart
         public Guid? CustomerId { get; set; }
     }
 }
+

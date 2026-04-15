@@ -1,9 +1,9 @@
 using FluxifyAPI.Data;
-using FluxifyAPI.Interfaces;
+using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace FluxifyAPI.Repository
+namespace FluxifyAPI.Repository.Implementations
 {
     public class CategoryRepository : ICategoryRepository
     {
@@ -17,6 +17,7 @@ namespace FluxifyAPI.Repository
         public async Task<Category?> GetCategoryAsync(Guid tenantId, Guid categoryId)
         {
             return await _context.Categories
+                .Include(c => c.Products)
                 .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.Id == categoryId);
         }
 
@@ -24,12 +25,8 @@ namespace FluxifyAPI.Repository
         {
             return _context.Categories
                 .Where(c => c.TenantId == tenantId)
+                .Include(c => c.Products)
                 .AsNoTracking();
-        }
-
-        public async Task<IEnumerable<Category>?> GetCategoriesByTenantAsync(Guid tenantId)
-        {
-            return await GetCategoriesByTenant(tenantId).ToListAsync();
         }
 
         public async Task<Category> CreateCategoryAsync(Category category)
@@ -43,7 +40,6 @@ namespace FluxifyAPI.Repository
         {
             if (_context.Entry(category).State == EntityState.Detached)
                 _context.Categories.Attach(category);
-
             await _context.SaveChangesAsync();
             return category;
         }
@@ -52,16 +48,24 @@ namespace FluxifyAPI.Repository
         {
             var category = await _context.Categories
                 .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.Id == categoryId);
-
             if (category == null)
-            {
                 return null;
-            }
-
             _context.Categories.Remove(category);
             await _context.SaveChangesAsync();
 
             return category;
         }
+
+        public async Task<bool> IsCategoryNameExists(Guid tenantId, string name)
+        {
+            return await _context.Categories.AnyAsync(c => c.TenantId == tenantId && c.Name == name);
+        }
+
+        public async Task<bool> IsCategoryExists(Guid tenantId, Guid categoryId)
+        {
+            return await _context.Categories.AnyAsync(c => c.TenantId == tenantId && c.Id == categoryId);
+        }
     }
 }
+
+

@@ -1,9 +1,9 @@
 using FluxifyAPI.Data;
-using FluxifyAPI.Interfaces;
+using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace FluxifyAPI.Repository
+namespace FluxifyAPI.Repository.Implementations
 {
     public class TenantRepository : ITenantRepository
     {
@@ -17,17 +17,14 @@ namespace FluxifyAPI.Repository
         public async Task<Tenant?> GetTenantAsync(Guid tenantId)
         {
             return await _context.Tenants
-                .Include(t => t.Owner)
-                .FirstOrDefaultAsync(t => t.Id == tenantId);
-        }
-
-        public async Task<Tenant?> GetTenantByOwnerAsync(Guid tenantId, Guid ownerId)
-        {
-            return await _context.Tenants
+                .Include(t => new
+                {
+                    t.Owner.Id,
+                    t.Owner.Email
+                })
                 .Include(t => t.Categories)
-                .Include(t => t.Customers)
-                .Include(t => t.Orders)
-                .FirstOrDefaultAsync(t => t.Id == tenantId && t.OwnerId == ownerId);
+                    .ThenInclude(c => c.Products)
+                .FirstOrDefaultAsync(t => t.Id == tenantId);
         }
 
         public async Task<Tenant?> GetTenantBySubdomainAsync(string subdomain)
@@ -69,21 +66,21 @@ namespace FluxifyAPI.Repository
             return tenantModel;
         }
 
-        public Task<bool> TenantExists(Guid tenantId)
+        public async Task<bool> TenantExists(Guid tenantId)
         {
-            return _context.Tenants.AnyAsync(t => t.Id == tenantId);
+            return await _context.Tenants.AnyAsync(t => t.Id == tenantId);
         }
 
-        public Task<bool> IsTenantOwner(Guid tenantId, Guid platformUserId)
+        public async Task<bool> SubdomainExists(string subdomain)
         {
-            return _context.Tenants.AnyAsync(t => t.Id == tenantId && t.OwnerId == platformUserId);
+            return await _context.Tenants.AnyAsync(t => t.Subdomain == subdomain);
         }
 
-        public Task<bool> SubdomainExists(string subdomain, Guid? excludeTenantId = null)
+        public async Task<bool> IsTenantOwner(Guid tenantId, Guid platformUserId)
         {
-            return _context.Tenants.AnyAsync(t =>
-                t.Subdomain == subdomain &&
-                (!excludeTenantId.HasValue || t.Id != excludeTenantId.Value));
+            return await _context.Tenants.AnyAsync(t => t.Id == tenantId && t.OwnerId == platformUserId);
         }
     }
 }
+
+

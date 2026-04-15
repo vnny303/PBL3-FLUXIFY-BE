@@ -8,3 +8,5 @@ namespace FluxifyAPI.DTOs.Order
         public string Status { get; set; } = string.Empty;
     }
 }
+
+

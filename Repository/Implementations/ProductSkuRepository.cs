@@ -1,9 +1,9 @@
 using FluxifyAPI.Data;
-using FluxifyAPI.Interfaces;
+using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace FluxifyAPI.Repository
+namespace FluxifyAPI.Repository.Implementations
 {
     public class ProductSkuRepository : IProductSkuRepository
     {
@@ -14,7 +14,7 @@ namespace FluxifyAPI.Repository
             _context = context;
         }
 
-        public async Task<ProductSku?> GetProductSkuAsync(Guid tenantId, Guid productSkuId)
+        public async Task<ProductSku?> GetProductSkusAsync(Guid tenantId, Guid productSkuId)
         {
             return await _context.ProductSkus
                 .Include(ps => ps.Product)
@@ -63,3 +63,5 @@ namespace FluxifyAPI.Repository
         }
     }
 }
+
+

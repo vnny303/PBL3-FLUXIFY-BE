@@ -1,9 +1,9 @@
 using FluxifyAPI.Data;
-using FluxifyAPI.Interfaces;
+using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace FluxifyAPI.Repository
+namespace FluxifyAPI.Repository.Implementations
 {
     public class PlatformUserRepository : IPlatformUserRepository
     {
@@ -54,9 +54,9 @@ namespace FluxifyAPI.Repository
                 .FirstOrDefaultAsync(p => p.Email == email && p.Role == "merchant");
         }
 
-        public Task<bool> PlatformUserEmailExistsAsync(string email)
+        public async Task<bool> PlatformUserEmailExistsAsync(string email)
         {
-            return _context.PlatformUsers.AnyAsync(p => p.Email == email);
+            return await _context.PlatformUsers.AnyAsync(p => p.Email == email);
         }
 
         public async Task<PlatformUser> CreatePlatformUserAsync(PlatformUser platformUser)
@@ -90,3 +90,5 @@ namespace FluxifyAPI.Repository
         }
     }
 }
+
+

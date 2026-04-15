@@ -26,3 +26,4 @@ namespace FluxifyAPI.DTOs.Order
         public List<OrderItemDto> OrderItems { get; set; } = new List<OrderItemDto>();
     }
 }
+

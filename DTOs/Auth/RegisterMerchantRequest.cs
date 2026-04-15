@@ -1,4 +1,4 @@
-﻿namespace FluxifyAPI.DTOs
+namespace FluxifyAPI.DTOs
 {
     public class RegisterMerchantRequest
     {
@@ -9,3 +9,4 @@
         public string Subdomain { get; set; } = string.Empty;
     }
 }
+

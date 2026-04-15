@@ -4,9 +4,6 @@ namespace FluxifyAPI.Helpers
 {
     public class QueryCustomer : QueryBase
     {
-        [FromQuery(Name = "tenantId")]
-        public Guid? TenantId { get; set; }
-
         [FromQuery(Name = "email")]
         public string? Email { get; set; }
 
@@ -20,3 +17,5 @@ namespace FluxifyAPI.Helpers
         public DateTime? CreatedTo { get; set; }
     }
 }
+
+

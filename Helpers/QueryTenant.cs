@@ -14,3 +14,5 @@ namespace FluxifyAPI.Helpers
         public string? Subdomain { get; set; }
     }
 }
+
+

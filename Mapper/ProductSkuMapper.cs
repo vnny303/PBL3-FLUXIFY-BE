@@ -59,3 +59,4 @@ namespace FluxifyAPI.Mapper
         }
     }
 }
+

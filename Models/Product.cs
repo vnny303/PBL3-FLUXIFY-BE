@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace FluxifyAPI.Models
@@ -22,6 +22,7 @@ namespace FluxifyAPI.Models
         // public Dictionary<string, List<string>> Attributes { get; set; } = new Dictionary<string, List<string>>();
         public string? Attributes { get; set; }
         [Column("img_urls")]
+
         public List<string> imgUrls { get; set; } = new List<string>();
         [JsonIgnore]
         public Category Category { get; set; } = null!;
@@ -30,3 +31,5 @@ namespace FluxifyAPI.Models
         public List<ProductSku> ProductSkus { get; set; } = new List<ProductSku>();
     }
 }
+
+

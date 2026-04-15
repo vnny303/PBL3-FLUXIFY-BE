@@ -25,3 +25,4 @@ namespace FluxifyAPI.DTOs.Tenant
         public List<OrderDto> Orders { get; set; } = new List<OrderDto>();
     }
 }
+

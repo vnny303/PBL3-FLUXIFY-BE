@@ -17,3 +17,5 @@ namespace FluxifyAPI.DTOs.Product
 
         }
 }
+
+

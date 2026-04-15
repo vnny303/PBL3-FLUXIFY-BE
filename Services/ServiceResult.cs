@@ -1,4 +1,4 @@
-namespace FluxifyAPI.Services
+namespace FluxifyAPI.Services.Common
 {
     public class ServiceResult<T>
     {
@@ -27,5 +27,14 @@ namespace FluxifyAPI.Services
             StatusCode = statusCode,
             Message = message
         };
+        public static ServiceResult<T> Forbidden(string message) => new()
+        {
+            Success = false,
+            StatusCode = 403,
+            Message = message
+        };
     }
 }
+
+
+

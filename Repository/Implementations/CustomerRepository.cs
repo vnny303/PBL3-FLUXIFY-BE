@@ -1,9 +1,9 @@
 using FluxifyAPI.Data;
-using FluxifyAPI.Interfaces;
+using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace FluxifyAPI.Repository
+namespace FluxifyAPI.Repository.Implementations
 {
     public class CustomerRepository : ICustomerRepository
     {
@@ -54,14 +54,14 @@ namespace FluxifyAPI.Repository
         }
 
 
-        public async Task<Customer?> GetCustomerByCartAsync(Guid tenantId, Guid cartId)
-        {
-            var customer = await _context.Customers
-                                .Include(c => c.Cart)
-                                .Include(c => c.Orders)
-                                .FirstOrDefaultAsync(c => c.Cart.Id == cartId && c.TenantId == tenantId);
-            return customer;
-        }
+        // public async Task<Customer?> GetCustomerByCartAsync(Guid tenantId, Guid cartId)
+        // {
+        //     var customer = await _context.Customers
+        //                         .Include(c => c.Cart)
+        //                         .Include(c => c.Orders)
+        //                         .FirstOrDefaultAsync(c => c.Cart.Id == cartId && c.TenantId == tenantId);
+        //     return customer;
+        // }
 
         public async Task<Customer?> GetCustomerByEmailAsync(Guid tenantId, string email)
         {
@@ -96,15 +96,10 @@ namespace FluxifyAPI.Repository
                                 .ToListAsync();
             return customers;
         }
-
-        public async Task<IEnumerable<Customer>> GetCustomersByTenantAsync(Guid tenantId)
+        public IQueryable<Customer> GetCustomer(Guid tenantId)
         {
-            var customers = await _context.Customers
-                                .Include(c => c.Cart)
-                                .Include(c => c.Orders)
-                                .Where(c => c.TenantId == tenantId)
-                                .ToListAsync();
-            return customers;
+            return _context.Customers.Where(c => c.TenantId == tenantId).AsQueryable();
         }
     }
 }
+
