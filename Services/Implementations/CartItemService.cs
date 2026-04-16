@@ -53,7 +53,9 @@ namespace FluxifyAPI.Services.Implementations
                 var addedItem = await _cartItemRepository.AddToCartAsync(cartItem);
                 if (addedItem == null)
                     return ServiceResult<CartItemDto>.Fail(500, "Không thể thêm sản phẩm vào giỏ hàng!");
-                return ServiceResult<CartItemDto>.Ok(addedItem.ToCartItemDto());
+
+                var addedItemWithProduct = await _cartItemRepository.GetCartItemAsync(tenantId, customerId, addedItem.ProductSkuId);
+                return ServiceResult<CartItemDto>.Ok((addedItemWithProduct ?? addedItem).ToCartItemDto());
             }
             else
             {

@@ -19,6 +19,7 @@ namespace FluxifyAPI.Repository.Implementations
         {
             return await _context.CartItems
                 .Include(ci => ci.ProductSku)
+                    .ThenInclude(ps => ps.Product)
                 .Where(ci => ci.Cart.CustomerId == customerId && ci.Cart.TenantId == tenantId)
                 .ToListAsync();
         }
@@ -26,6 +27,7 @@ namespace FluxifyAPI.Repository.Implementations
         {
             return await _context.CartItems
                 .Include(ci => ci.ProductSku)
+                    .ThenInclude(ps => ps.Product)
                 .FirstOrDefaultAsync(ci => ci.ProductSkuId == productSkuId
                     && ci.Cart.CustomerId == customerId
                     && ci.Cart.TenantId == tenantId);

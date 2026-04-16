@@ -10,6 +10,16 @@ namespace FluxifyAPI.DTOs.Cart
 
         public Guid ProductSkuId { get; set; }
 
+        public string? ProductName { get; set; }
+
+        public string? SkuAttributes { get; set; }
+
+        public string? SkuDisplayName { get; set; }
+
+        public string? SkuImageUrl { get; set; }
+
+        public decimal? UnitPrice { get; set; }
+
         public int Quantity { get; set; }
     }
 }

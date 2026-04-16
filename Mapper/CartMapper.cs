@@ -31,11 +31,24 @@ namespace FluxifyAPI.Mapper
         }
         public static CartItemDto ToCartItemDto(this CartItem cartItem)
         {
+            var productName = cartItem.ProductSku?.Product?.Name;
+            var skuAttributes = cartItem.ProductSku?.Attributes;
+            var skuDisplayName = string.IsNullOrWhiteSpace(productName)
+                ? null
+                : string.IsNullOrWhiteSpace(skuAttributes)
+                    ? productName
+                    : $"{productName} - {skuAttributes}";
+
             return new CartItemDto
             {
                 Id = cartItem.Id,
                 CartId = cartItem.CartId,
                 ProductSkuId = cartItem.ProductSkuId,
+                ProductName = productName,
+                SkuAttributes = skuAttributes,
+                SkuDisplayName = skuDisplayName,
+                SkuImageUrl = cartItem.ProductSku?.imgUrl,
+                UnitPrice = cartItem.ProductSku?.Price,
                 Quantity = cartItem.Quantity
             };
         }

@@ -134,3 +134,59 @@ Luc_21h/11/4/2026
 
 - Build solution thành công sau các cập nhật trên.
 - Còn warning kỹ thuật cũ (migrations/obsolete API/nullability) chưa xử lý trong đợt này.
+
+
+Luc_16h/16/4/2026
+Refactor lại luồng Order cho merchant
+
+Chuẩn hóa xác thực theo userId claim + role merchant ở OrdersController.cs:10.
+
+Bỏ các endpoint placeholder chưa triển khai trong OrdersController.cs.
+
+Đồng bộ chữ ký service/order giữa interface và implementation ở IOrderService.cs:9 và OrderService.cs:24.
+
+Thêm kiểm tra quyền tenant owner trong service Order ở OrderService.cs:26.
+
+Fix luồng CartItem hiển thị tên SKU/sản phẩm
+
+Mở rộng DTO cart item để trả dữ liệu hiển thị (ProductName, SkuDisplayName, UnitPrice, ảnh SKU...) ở CartItemDto.cs:13.
+
+Map dữ liệu hiển thị trong CartMapper.cs:34.
+
+Include thêm Product từ ProductSku trong CartItemRepository.cs:22.
+
+Sau khi AddToCart, re-query lại item để response có đủ thông tin hiển thị ở CartItemService.cs:57.
+
+Triển khai mới luồng Customer Order
+
+Thêm controller mới cho customer order tại CustomerOrdersController.cs:11.
+
+Endpoint mới:
+
+GET /api/customer/orders
+
+GET /api/customer/orders/{orderId}
+
+POST /api/customer/orders/checkout
+
+PUT /api/customer/orders/{orderId}/cancel
+
+Thêm DTO checkout ở CheckoutOrderRequestDto.cs:5.
+
+Mở rộng service contract customer flow ở IOrderService.cs:15.
+
+Implement logic customer flow trong OrderService.cs:191.
+
+Sửa lỗi runtime phát sinh khi test
+
+Sửa lỗi Collection was modified trong checkout bằng snapshot cart items ở OrderService.cs:299.
+
+Đồng bộ database
+
+Đã chạy migration để thêm cột ảnh product/sku (img_urls, img_url), tương ứng migration 20260414060029_addImgUrlToProductAndProductSku.cs.
+
+Kết quả test
+
+Đã test E2E thành công các bước customer order: add cart item -> checkout -> get my orders -> get order detail -> cancel order -> verify status Cancelled.
+
+Build hiện pass, còn warning cũ (nullability/obsolete API) chưa xử lý trong đợt này.
