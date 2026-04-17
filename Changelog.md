@@ -190,3 +190,50 @@ Kết quả test
 Đã test E2E thành công các bước customer order: add cart item -> checkout -> get my orders -> get order detail -> cancel order -> verify status Cancelled.
 
 Build hiện pass, còn warning cũ (nullability/obsolete API) chưa xử lý trong đợt này.
+
+================================================================================
+
+Luc_17/04/2026
+
+Theme customize + Tenant API refactor
+
+### Added
+
+1. Hỗ trợ lưu cấu hình giao diện storefront trực tiếp trên Tenant:
+  - Thêm 2 cột mới trong bảng `tenants`:
+    - `content_config`
+    - `theme_config`
+  - Migration: `20260417111822_AddTenantThemeAndContentConfig`
+
+2. Bổ sung schema DTO cho cấu hình storefront:
+  - `StorefrontContentConfigDto` (home/about)
+  - `StorefrontThemeConfigDto` (colors/typography/layout/components)
+  - `StorefrontTenantLookupDto` cho endpoint public lookup theo subdomain
+
+3. Chuẩn hóa API cập nhật theo resource cho theme/content:
+  - `PATCH /api/tenants/subdomain/{subdomain}/content`
+  - `PATCH /api/tenants/subdomain/{subdomain}/theme`
+
+### Changed
+
+1. Refactor luồng map Tenant config JSON:
+  - Serialize/deserialize qua mapper để chuyển đổi 2 chiều giữa JSON DB <-> DTO strongly typed.
+  - `CreateTenant` và `RegisterMerchant` khởi tạo cấu hình content/theme mặc định.
+
+2. PUT tenant (`PUT /api/tenants/{id}`) chỉ còn xử lý thông tin tenant lõi:
+  - `subdomain`, `storeName`, `isActive`
+  - Không còn cập nhật trực tiếp content/theme trong PUT.
+
+### Fixed
+
+1. Sửa các check quyền Tenant bị đảo logic trong service:
+  - Chuẩn hóa thứ tự xử lý: `404 not found` -> `403 forbidden`.
+
+2. Sửa lỗi tiềm ẩn runtime ở repository:
+  - Bỏ `Include` anonymous expression không hợp lệ.
+  - Đổi sang include navigation hợp lệ và tối ưu query lookup subdomain.
+
+3. Hardening contract để tránh silent break ở client cũ:
+  - Nếu client vẫn gửi `contentConfig`/`themeConfig` vào `PUT /api/tenants/{id}` -> trả `400` kèm hướng dẫn dùng PATCH resource mới.
+
+4. Lookup storefront trả `404` khi tenant không active để tránh lộ trạng thái store.

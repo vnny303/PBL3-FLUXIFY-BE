@@ -14,6 +14,10 @@ namespace FluxifyAPI.DTOs.Tenant
         public string StoreName { get; set; } = string.Empty;
 
         public bool? IsActive { get; set; } = true;
+
+        public StorefrontContentConfigDto? ContentConfig { get; set; }
+
+        public StorefrontThemeConfigDto? ThemeConfig { get; set; }
     }
 }
 

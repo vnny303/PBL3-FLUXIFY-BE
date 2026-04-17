@@ -16,6 +16,10 @@ namespace FluxifyAPI.Models
         public string StoreName { get; set; } = string.Empty;
         [Column("is_active")]
         public bool? IsActive { get; set; }
+        [Column("content_config")]
+        public string? ContentConfigJson { get; set; }
+        [Column("theme_config")]
+        public string? ThemeConfigJson { get; set; }
         public List<Category> Categories { get; set; } = new List<Category>();
         public List<Customer> Customers { get; set; } = new List<Customer>();
         public List<Order> Orders { get; set; } = new List<Order>();

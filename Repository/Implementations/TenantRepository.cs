@@ -17,11 +17,7 @@ namespace FluxifyAPI.Repository.Implementations
         public async Task<Tenant?> GetTenantAsync(Guid tenantId)
         {
             return await _context.Tenants
-                .Include(t => new
-                {
-                    t.Owner.Id,
-                    t.Owner.Email
-                })
+                .Include(t => t.Owner)
                 .Include(t => t.Categories)
                     .ThenInclude(c => c.Products)
                 .FirstOrDefaultAsync(t => t.Id == tenantId);
@@ -30,7 +26,6 @@ namespace FluxifyAPI.Repository.Implementations
         public async Task<Tenant?> GetTenantBySubdomainAsync(string subdomain)
         {
             return await _context.Tenants
-                .Include(t => t.Owner)
                 .FirstOrDefaultAsync(t => t.Subdomain == subdomain);
         }
 

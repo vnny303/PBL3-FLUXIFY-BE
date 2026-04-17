@@ -49,7 +49,7 @@ namespace FluxifyAPI.Controllers
         // GET: api/tenants/subdomain/{subdomain}
         [AllowAnonymous]
         [HttpGet("subdomain/{subdomain}")]
-        public async Task<ActionResult<TenantDto>> GetTenantBySubdomain([FromRoute] string subdomain)
+        public async Task<ActionResult<StorefrontTenantLookupDto>> GetTenantBySubdomain([FromRoute] string subdomain)
         {
             var result = await _tenantService.GetTenantBySubdomainAsync(subdomain);
             if (!result.Success)
@@ -86,6 +86,42 @@ namespace FluxifyAPI.Controllers
             var result = await _tenantService.UpdateTenantAsync(id, ownerId, tenantDto);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
+            return Ok(result.Data);
+        }
+
+        // PATCH: api/tenants/subdomain/{subdomain}/content
+        [HttpPatch("subdomain/{subdomain}/content")]
+        public async Task<IActionResult> UpdateTenantContent([FromRoute] string subdomain, [FromBody] StorefrontContentConfigDto contentPatch)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var userIdClaim = User.FindFirstValue("userId");
+            if (!Guid.TryParse(userIdClaim, out var ownerId))
+                return Unauthorized(new { message = "Token không hợp lệ hoặc thiếu userId claim" });
+
+            var result = await _tenantService.UpdateTenantContentAsync(subdomain, ownerId, contentPatch);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
+
+            return Ok(result.Data);
+        }
+
+        // PATCH: api/tenants/subdomain/{subdomain}/theme
+        [HttpPatch("subdomain/{subdomain}/theme")]
+        public async Task<IActionResult> UpdateTenantTheme([FromRoute] string subdomain, [FromBody] StorefrontThemeConfigDto themePatch)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var userIdClaim = User.FindFirstValue("userId");
+            if (!Guid.TryParse(userIdClaim, out var ownerId))
+                return Unauthorized(new { message = "Token không hợp lệ hoặc thiếu userId claim" });
+
+            var result = await _tenantService.UpdateTenantThemeAsync(subdomain, ownerId, themePatch);
+            if (!result.Success)
+                return StatusCode(result.StatusCode, new { message = result.Message });
+
             return Ok(result.Data);
         }
 
