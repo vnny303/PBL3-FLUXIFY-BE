@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using FluxifyAPI.Models;
 
 namespace FluxifyAPI.Services.Implementations
 {
@@ -16,17 +17,20 @@ namespace FluxifyAPI.Services.Implementations
         private readonly IPlatformUserRepository _platformUserRepository;
         private readonly ITenantRepository _tenantRepository;
         private readonly ICustomerRepository _customerRepository;
+        private readonly ICartRepository _cartRepository;
         private readonly IConfiguration _config;
 
         public AuthService(
             IPlatformUserRepository platformUserRepository,
             ITenantRepository tenantRepository,
             ICustomerRepository customerRepository,
+            ICartRepository cartRepository,
             IConfiguration config)
         {
             _platformUserRepository = platformUserRepository;
             _tenantRepository = tenantRepository;
             _customerRepository = customerRepository;
+            _cartRepository = cartRepository;
             _config = config;
         }
 
@@ -132,6 +136,12 @@ namespace FluxifyAPI.Services.Implementations
 
             var customer = request.ToCustomerFromRegisterDto(tenant.Id);
             await _customerRepository.CreateCustomerAsync(customer);
+            await _cartRepository.CreateCartAsync(new Cart
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenant.Id,
+                CustomerId = customer.Id
+            });
 
             var token = GenerateToken([
                 new Claim("userId", customer.Id.ToString()),

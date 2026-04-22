@@ -18,18 +18,8 @@ namespace FluxifyAPI.Repository.Implementations
             if (customer.Id == Guid.Empty)
                 customer.Id = Guid.NewGuid();
 
-            var cart = new Cart
-            {
-                Id = Guid.NewGuid(),
-                CustomerId = customer.Id,
-                TenantId = customer.TenantId
-            };
-
             await _context.Customers.AddAsync(customer);
-            await _context.Carts.AddAsync(cart);
             await _context.SaveChangesAsync();
-
-            customer.Cart = cart;
             return customer;
         }
 
@@ -95,7 +85,9 @@ namespace FluxifyAPI.Repository.Implementations
         }
         public IQueryable<Customer> GetCustomer(Guid tenantId)
         {
-            return _context.Customers.Where(c => c.TenantId == tenantId).AsQueryable();
+            return _context.Customers
+                .Where(c => c.TenantId == tenantId)
+                .AsNoTracking();
         }
 
         public async Task<bool> CustomerExists(Guid tenantId, Guid customerId)

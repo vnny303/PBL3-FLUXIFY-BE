@@ -1,4 +1,5 @@
 using FluxifyAPI.DTOs.Product;
+using FluxifyAPI.DTOs.ProductSku;
 using FluxifyAPI.Models;
 
 namespace FluxifyAPI.Mapper
@@ -21,9 +22,14 @@ namespace FluxifyAPI.Mapper
             };
         }
 
-        public static Product ToProductFromCreateDto(this CreateProductRequestDto createDto, Guid tenantId)
+        public static Product ToProductFromCreateDto(
+            this CreateProductRequestDto createDto,
+            Guid tenantId,
+            Dictionary<string, List<string>>? resolvedAttributes = null,
+            IEnumerable<CreateProductSkuRequestDto>? resolvedSkus = null)
         {
             var productId = Guid.NewGuid();
+            var skuSource = resolvedSkus ?? createDto.Skus ?? new List<CreateProductSkuRequestDto>();
 
             var product = new Product
             {
@@ -32,9 +38,9 @@ namespace FluxifyAPI.Mapper
                 CategoryId = createDto.CategoryId,
                 Name = createDto.Name.Trim(),
                 Description = createDto.Description?.Trim(),
-                Attributes = createDto.Attributes,
+                Attributes = resolvedAttributes ?? createDto.Attributes,
                 imgUrls = createDto.imgUrls ?? new List<string>(),
-                ProductSkus = createDto.Skus
+                ProductSkus = skuSource
                     .Select(s => s.ToProductSkuFromCreateDto(productId))
                     .ToList()
             };

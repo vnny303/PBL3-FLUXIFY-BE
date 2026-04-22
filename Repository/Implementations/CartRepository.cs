@@ -2,8 +2,6 @@ using FluxifyAPI.Data;
 using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Models;
 using Microsoft.EntityFrameworkCore;
-using FluxifyAPI.DTOs.Cart;
-using FluxifyAPI.Mapper;
 
 namespace FluxifyAPI.Repository.Implementations
 {
@@ -24,9 +22,8 @@ namespace FluxifyAPI.Repository.Implementations
                 .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.CustomerId == customerId);
         }
 
-        public async Task<Cart> CreateCartAsync(CreateCartRequestDto createDto)
+        public async Task<Cart> CreateCartAsync(Cart cart)
         {
-            var cart = createDto.ToCartFromCreateDto();
             await _context.Carts.AddAsync(cart);
             await _context.SaveChangesAsync();
 

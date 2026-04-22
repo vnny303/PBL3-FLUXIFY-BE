@@ -18,6 +18,10 @@ namespace FluxifyAPI.DTOs.Tenant
 
         public bool? IsActive { get; set; }
 
+        public StorefrontContentConfigDto ContentConfig { get; set; } = new();
+
+        public StorefrontThemeConfigDto ThemeConfig { get; set; } = new();
+
         public List<CategoryDto> Categories { get; set; } = new List<CategoryDto>();
 
         public List<CustomerDto> Customers { get; set; } = new List<CustomerDto>();

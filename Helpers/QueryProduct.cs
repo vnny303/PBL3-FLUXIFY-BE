@@ -4,6 +4,8 @@ namespace FluxifyAPI.Helpers
 {
     public class QueryProduct : QueryBase
     {
+        [FromQuery(Name = "categoryId")]
+        public Guid? CategoryId { get; set; }
 
         [FromQuery(Name = "name")]
         public string? Name { get; set; }

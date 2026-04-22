@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace FluxifyAPI.DTOs.Tenant
 {
@@ -12,6 +14,24 @@ namespace FluxifyAPI.DTOs.Tenant
         public string? StoreName { get; set; }
 
         public bool? IsActive { get; set; }
+
+        [JsonExtensionData]
+        public Dictionary<string, JsonElement>? ExtraFields { get; set; }
+
+        public bool ContainsDeprecatedThemePayload()
+        {
+            if (ExtraFields == null || ExtraFields.Count == 0)
+                return false;
+
+            foreach (var key in ExtraFields.Keys)
+            {
+                if (string.Equals(key, "contentConfig", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(key, "themeConfig", StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+
+            return false;
+        }
     }
 }
 

@@ -67,8 +67,7 @@ namespace FluxifyAPI.Services.Implementations
             var category = await _categoryRepository.GetCategoryAsync(tenantId, categoryId);
             if (category == null)
                 return ServiceResult<CategoryDto>.Fail(404, "Không tìm thấy danh mục!");
-            if (!category.Products.Any())
-                return ServiceResult<CategoryDto>.Fail(404, "Danh mục không có sản phẩm nào!");
+
             return ServiceResult<CategoryDto>.Ok(category.ToCategoryDto());
         }
 

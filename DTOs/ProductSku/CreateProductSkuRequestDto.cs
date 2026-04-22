@@ -10,7 +10,7 @@ namespace FluxifyAPI.DTOs.ProductSku
         [Range(0, int.MaxValue, ErrorMessage = "Tồn kho không được âm")]
         public int Stock { get; set; }
 
-        public string? Attributes { get; set; }
+        public Dictionary<string, string>? Attributes { get; set; }
 
         public string? imgUrl { get; set; }
     }

@@ -2,7 +2,6 @@ using FluxifyAPI.Data;
 using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Models;
 using Microsoft.EntityFrameworkCore;
-using FluxifyAPI.DTOs.Cart;
 
 namespace FluxifyAPI.Repository.Implementations
 {
@@ -19,13 +18,25 @@ namespace FluxifyAPI.Repository.Implementations
         {
             return await _context.CartItems
                 .Include(ci => ci.ProductSku)
+                    .ThenInclude(ps => ps.Product)
                 .Where(ci => ci.Cart.CustomerId == customerId && ci.Cart.TenantId == tenantId)
                 .ToListAsync();
         }
+
+        public async Task<CartItem?> GetCartItemByIdAsync(Guid tenantId, Guid customerId, Guid cartItemId)
+        {
+            return await _context.CartItems
+                .Include(ci => ci.ProductSku)
+                .FirstOrDefaultAsync(ci => ci.Id == cartItemId
+                    && ci.Cart.CustomerId == customerId
+                    && ci.Cart.TenantId == tenantId);
+        }
+
         public async Task<CartItem?> GetCartItemAsync(Guid tenantId, Guid customerId, Guid productSkuId)
         {
             return await _context.CartItems
                 .Include(ci => ci.ProductSku)
+                    .ThenInclude(ps => ps.Product)
                 .FirstOrDefaultAsync(ci => ci.ProductSkuId == productSkuId
                     && ci.Cart.CustomerId == customerId
                     && ci.Cart.TenantId == tenantId);

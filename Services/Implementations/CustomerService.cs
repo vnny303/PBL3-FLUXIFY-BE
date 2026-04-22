@@ -4,6 +4,8 @@ using FluxifyAPI.Mapper;
 using FluxifyAPI.Services.Interfaces;
 using FluxifyAPI.Services.Common;
 using FluxifyAPI.Helpers;
+using Microsoft.EntityFrameworkCore;
+using FluxifyAPI.Models;
 
 namespace FluxifyAPI.Services.Implementations
 {
@@ -11,43 +13,52 @@ namespace FluxifyAPI.Services.Implementations
     {
         private readonly ICustomerRepository _customerRepository;
         private readonly ITenantRepository _tenantRepository;
+        private readonly ICartRepository _cartRepository;
 
-        public CustomerService(ICustomerRepository customerRepository, ITenantRepository tenantRepository)
+        public CustomerService(ICustomerRepository customerRepository, ITenantRepository tenantRepository, ICartRepository cartRepository)
         {
             _customerRepository = customerRepository;
             _tenantRepository = tenantRepository;
+            _cartRepository = cartRepository;
         }
 
         public async Task<ServiceResult<IEnumerable<CustomerDto>>> GetCustomersAsync(Guid tenantId, Guid ownerId, QueryCustomer query)
         {
             if (!await _tenantRepository.IsTenantOwner(tenantId, ownerId))
                 return ServiceResult<IEnumerable<CustomerDto>>.Forbidden("Bạn không có quyền truy cập vào tenant này");
+
             var customers = _customerRepository.GetCustomer(tenantId);
+
             if (!string.IsNullOrEmpty(query.SearchTerm))
-                customers = customers.Where(c => c.Email.ToLower().Contains(query.SearchTerm.Trim().ToLower()));
+                customers = customers.Where(c => c.Email.ToLower().Contains(query.SearchTerm));
             if (!string.IsNullOrEmpty(query.Email))
                 customers = customers.Where(c => c.Email.ToLower() == query.Email.Trim().ToLower());
+            if (query.IsActive.HasValue)
+                customers = customers.Where(c => c.IsActive == query.IsActive.Value);
             if (query.CreatedFrom.HasValue)
                 customers = customers.Where(c => c.CreatedAt >= query.CreatedFrom.Value);
             if (query.CreatedTo.HasValue)
                 customers = customers.Where(c => c.CreatedAt <= query.CreatedTo.Value);
-            if (!string.IsNullOrEmpty(query.SortBy))
+
+            var isDescending = string.Equals(query.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+            switch (query.SortBy)
             {
-                switch (query.SortBy.ToLower())
-                {
-                    case "email":
-                        customers = query.SortDirection == "desc" ? customers.OrderByDescending(c => c.Email) : customers.OrderBy(c => c.Email);
-                        break;
-                    case "createdat":
-                        customers = query.SortDirection == "desc" ? customers.OrderByDescending(c => c.CreatedAt) : customers.OrderBy(c => c.CreatedAt);
-                        break;
-                    default:
-                        customers = customers.OrderBy(c => c.Email); // Mặc định sắp xếp theo email
-                        break;
-                }
+                case "email":
+                    customers = isDescending ? customers.OrderByDescending(c => c.Email) : customers.OrderBy(c => c.Email);
+                    break;
+                case "createdat":
+                case "created_at":
+                    customers = isDescending ? customers.OrderByDescending(c => c.CreatedAt) : customers.OrderBy(c => c.CreatedAt);
+                    break;
+                default:
+                    customers = customers.OrderByDescending(c => c.CreatedAt);
+                    break;
             }
 
-            return ServiceResult<IEnumerable<CustomerDto>>.Ok(customers.Select(c => c.ToCustomerDto()));
+            var skipNumber = (query.Page - 1) * query.PageSize;
+            var pagedCustomers = await customers.Skip(skipNumber).Take(query.PageSize).ToListAsync();
+
+            return ServiceResult<IEnumerable<CustomerDto>>.Ok(pagedCustomers.Select(c => c.ToCustomerDto()));
         }
 
         public async Task<ServiceResult<CustomerDto>> GetCustomerAsync(Guid tenantId, Guid customerId, Guid ownerId)
@@ -97,6 +108,14 @@ namespace FluxifyAPI.Services.Implementations
 
             var customer = customerDto.ToCustomerFromCreateDto(tenantId);
             var createdCustomer = await _customerRepository.CreateCustomerAsync(customer);
+            var cart = await _cartRepository.CreateCartAsync(new Cart
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                CustomerId = createdCustomer.Id
+            });
+
+            createdCustomer.Cart = cart;
             return ServiceResult<CustomerDto>.Created(createdCustomer.ToCustomerDto());
         }
 

@@ -11,12 +11,10 @@ namespace FluxifyAPI.Controllers
     [ApiController]
     public class CartController : ControllerBase
     {
-        private readonly ICartService _cartService;
         private readonly ICartItemService _cartItemService;
 
-        public CartController(ICartService cartService, ICartItemService cartItemService)
+        public CartController(ICartItemService cartItemService)
         {
-            _cartService = cartService;
             _cartItemService = cartItemService;
         }
         [HttpGet]

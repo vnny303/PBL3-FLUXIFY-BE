@@ -2,7 +2,6 @@ using FluxifyAPI.Data;
 using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Query;
 
 namespace FluxifyAPI.Repository.Implementations
 {
@@ -22,7 +21,7 @@ namespace FluxifyAPI.Repository.Implementations
                 .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == productId);
         }
 
-        public IQueryable<Product?> GetProductByCategory(Guid tenantId, Guid categoryId)
+        public IQueryable<Product> GetProductByCategory(Guid tenantId, Guid categoryId)
         {
             return GetProductsByTenant(tenantId)
                 .Where(p => p.CategoryId == categoryId)

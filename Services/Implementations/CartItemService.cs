@@ -25,14 +25,16 @@ namespace FluxifyAPI.Services.Implementations
             _productSkuRepository = productSkuRepository;
         }
 
-        public async Task<ServiceResult<IEnumerable<CartItemDto?>>> GetCartItemsAsync(Guid tenantId, Guid customerId)
+        public async Task<ServiceResult<IEnumerable<CartItemDto>>> GetCartItemsAsync(Guid tenantId, Guid customerId)
         {
             if (!await _customerRepository.CustomerExists(tenantId, customerId))
-                return ServiceResult<IEnumerable<CartItemDto?>>.Fail(404, "Không tìm thấy khách hàng!");
+                return ServiceResult<IEnumerable<CartItemDto>>.Fail(404, "Không tìm thấy khách hàng!");
+
             var items = await _cartItemRepository.GetCartItemsAsync(tenantId, customerId);
             if (items == null)
-                return ServiceResult<IEnumerable<CartItemDto?>>.Ok([]);
-            return ServiceResult<IEnumerable<CartItemDto?>>.Ok(items.Select(i => i.ToCartItemDto()));
+                return ServiceResult<IEnumerable<CartItemDto>>.Ok([]);
+
+            return ServiceResult<IEnumerable<CartItemDto>>.Ok(items.Select(i => i.ToCartItemDto()));
         }
 
         public async Task<ServiceResult<CartItemDto>> AddToCartAsync(Guid tenantId, Guid customerId, CreateCartItemRequestDto createDto)
@@ -53,7 +55,9 @@ namespace FluxifyAPI.Services.Implementations
                 var addedItem = await _cartItemRepository.AddToCartAsync(cartItem);
                 if (addedItem == null)
                     return ServiceResult<CartItemDto>.Fail(500, "Không thể thêm sản phẩm vào giỏ hàng!");
-                return ServiceResult<CartItemDto>.Ok(addedItem.ToCartItemDto());
+
+                var addedItemWithProduct = await _cartItemRepository.GetCartItemAsync(tenantId, customerId, addedItem.ProductSkuId);
+                return ServiceResult<CartItemDto>.Ok((addedItemWithProduct ?? addedItem).ToCartItemDto());
             }
             else
             {
@@ -72,19 +76,26 @@ namespace FluxifyAPI.Services.Implementations
         {
             if (!await _customerRepository.CustomerExists(tenantId, customerId))
                 return ServiceResult<CartItemDto>.Fail(404, "Không tìm thấy khách hàng!");
-            if (!await _productSkuRepository.ProductSkuExists(tenantId, updateDto.ProductSkuId))
-                return ServiceResult<CartItemDto>.Fail(404, "Không tìm thấy SKU sản phẩm!");
-            var sku = await _productSkuRepository.GetProductSkusAsync(tenantId, updateDto.ProductSkuId);
             if (!await _cartRepository.CartExists(tenantId, customerId))
                 return ServiceResult<CartItemDto>.Fail(404, "Không tìm thấy giỏ hàng!");
-            var cart = await _cartRepository.GetCartAsync(tenantId, customerId);
-            if (sku.Stock < updateDto.Quantity)
-                return ServiceResult<CartItemDto>.Fail(400, $"SKU chỉ còn {sku.Stock} trong kho!");
-            var cartItem = updateDto.ToCartItemFromUpdateDto(cartItemId);
+
+            var cartItem = await _cartItemRepository.GetCartItemByIdAsync(tenantId, customerId, cartItemId);
             if (cartItem == null)
                 return ServiceResult<CartItemDto>.Fail(404, "Không tìm thấy sản phẩm trong giỏ hàng!");
 
-            return ServiceResult<CartItemDto>.Ok(cartItem.ToCartItemDto());
+            var sku = await _productSkuRepository.GetProductSkusAsync(tenantId, cartItem.ProductSkuId);
+            if (sku == null)
+                return ServiceResult<CartItemDto>.Fail(404, "Không tìm thấy SKU sản phẩm!");
+
+            if (sku.Stock < updateDto.Quantity)
+                return ServiceResult<CartItemDto>.Fail(400, $"SKU chỉ còn {sku.Stock} trong kho!");
+
+            cartItem.Quantity = updateDto.Quantity;
+            var updatedItem = await _cartItemRepository.UpdateCartItemAsync(cartItem);
+            if (updatedItem == null)
+                return ServiceResult<CartItemDto>.Fail(500, "Không thể cập nhật sản phẩm trong giỏ hàng!");
+
+            return ServiceResult<CartItemDto>.Ok(updatedItem.ToCartItemDto());
         }
 
         public async Task<ServiceResult<object>> RemoveCartItemAsync(Guid tenantId, Guid customerId, Guid cartItemId)
@@ -101,12 +112,12 @@ namespace FluxifyAPI.Services.Implementations
         {
             if (!await _customerRepository.CustomerExists(tenantId, customerId))
                 return ServiceResult<object>.Fail(404, "Không tìm thấy khách hàng!");
-            var items = await _cartItemRepository.GetCartItemsAsync(tenantId, customerId);
-            if (items == null || !items.Any())
+            var items = (await _cartItemRepository.GetCartItemsAsync(tenantId, customerId))?.ToList() ?? [];
+            if (!items.Any())
                 return ServiceResult<object>.Ok(new { message = "Giỏ hàng đã trống!" });
             foreach (var item in items)
                 await _cartItemRepository.DeleteCartItemAsync(tenantId, customerId, item.Id);
-            return ServiceResult<object>.Ok(new { message = $"Đã xóa {items.Count()} sản phẩm khỏi giỏ hàng!" });
+            return ServiceResult<object>.Ok(new { message = $"Đã xóa {items.Count} sản phẩm khỏi giỏ hàng!" });
         }
     }
 }

@@ -42,7 +42,9 @@ namespace FluxifyAPI.Services.Implementations
                 return ServiceResult<CartDto>.Fail(404, "Customer không tồn tại");
             if (await _cartRepository.CartExists(createDto.TenantId, createDto.CustomerId))
                 return ServiceResult<CartDto>.Fail(400, "Customer đã có giỏ hàng");
-            var createdCart = await _cartRepository.CreateCartAsync(createDto);
+
+            var cart = createDto.ToCartFromCreateDto();
+            var createdCart = await _cartRepository.CreateCartAsync(cart);
             return ServiceResult<CartDto>.Created(createdCart.ToCartDto());
         }
     }
