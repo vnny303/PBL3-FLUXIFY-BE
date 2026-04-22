@@ -19,6 +19,7 @@ namespace FluxifyAPI.Models
         public DateTime? CreatedAt { get; set; }
         public Cart Cart { get; set; } = null!;
         public List<Order> Orders { get; set; } = new List<Order>();
+        public List<Review> Reviews { get; set; } = new List<Review>();
         [JsonIgnore]
         public Tenant Tenant { get; set; } = null!;
     }

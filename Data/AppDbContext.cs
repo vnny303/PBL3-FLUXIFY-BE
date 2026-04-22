@@ -25,6 +25,7 @@ public partial class AppDbContext : DbContext
     public DbSet<PlatformUser> PlatformUsers { get; set; }
     public DbSet<Product> Products { get; set; }
     public DbSet<ProductSku> ProductSkus { get; set; }
+    public DbSet<Review> Reviews { get; set; }
     public DbSet<Tenant> Tenants { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -59,6 +60,19 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Cart>()
             .HasIndex(c => c.TenantId);
+
+        modelBuilder.Entity<Review>()
+            .HasIndex(r => r.TenantId);
+
+        modelBuilder.Entity<Review>()
+            .HasIndex(r => new { r.TenantId, r.ProductSkuId });
+
+        modelBuilder.Entity<Review>()
+            .HasIndex(r => new { r.TenantId, r.CustomerId });
+
+        modelBuilder.Entity<Review>()
+            .HasIndex(r => new { r.TenantId, r.ProductSkuId, r.CustomerId })
+            .IsUnique();
 
         // decimal
         modelBuilder.Entity<OrderItem>()
@@ -149,6 +163,24 @@ public partial class AppDbContext : DbContext
             .HasOne(ps => ps.Product)
             .WithMany(p => p.ProductSkus)
             .HasForeignKey(ps => ps.ProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Review>()
+            .HasOne(r => r.Tenant)
+            .WithMany(t => t.Reviews)
+            .HasForeignKey(r => r.TenantId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Review>()
+            .HasOne(r => r.ProductSku)
+            .WithMany(ps => ps.Reviews)
+            .HasForeignKey(r => r.ProductSkuId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Review>()
+            .HasOne(r => r.Customer)
+            .WithMany(c => c.Reviews)
+            .HasForeignKey(r => r.CustomerId)
             .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<OrderItem>()
