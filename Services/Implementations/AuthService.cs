@@ -119,7 +119,8 @@ namespace FluxifyAPI.Services.Implementations
                 tenants = user.Tenants.Select(t => new
                 {
                     tenantId = t.Id,
-                    subdomain = t.Subdomain
+                    subdomain = t.StoreName,
+                    storename = t.StoreName
                 })
             });
         }
