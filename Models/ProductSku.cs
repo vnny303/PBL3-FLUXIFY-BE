@@ -48,6 +48,7 @@ namespace FluxifyAPI.Models
         public Product Product { get; set; } = null!;
         public List<CartItem> CartItems { get; set; } = new List<CartItem>();
         public List<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+        public List<Review> Reviews { get; set; } = new List<Review>();
     }
 }
 
