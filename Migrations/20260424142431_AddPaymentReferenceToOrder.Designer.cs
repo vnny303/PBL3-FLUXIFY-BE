@@ -4,6 +4,7 @@ using FluxifyAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FluxifyAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260424142431_AddPaymentReferenceToOrder")]
+    partial class AddPaymentReferenceToOrder
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -405,18 +408,10 @@ namespace FluxifyAPI.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("description");
 
-                    b.Property<string>("DetailSections")
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("detail_sections");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("name");
-
-                    b.Property<string>("Specifications")
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("specifications");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier")

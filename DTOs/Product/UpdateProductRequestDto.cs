@@ -15,6 +15,10 @@ namespace FluxifyAPI.DTOs.Product
 
                 public List<string>? imgUrls { get; set; }
 
+                public List<DetailSectionDto>? DetailSections { get; set; }
+
+                public List<SpecificationDto>? Specifications { get; set; }
+
         }
 }
 

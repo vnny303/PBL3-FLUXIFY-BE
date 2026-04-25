@@ -8,6 +8,7 @@ namespace FluxifyAPI.Services.Interfaces
     public interface IProductService
     {
         Task<ServiceResult<IEnumerable<ProductDto>>> GetProductsAsync(Guid tenantId, QueryProduct query);
+        Task<ServiceResult<ProductDetailDto>> GetProductDetailAsync(Guid tenantId, Guid id);
         Task<ServiceResult<ProductDto>> GetProductAsync(Guid tenantId, Guid id);
         Task<ServiceResult<ProductDto>> CreateProductAsync(Guid tenantId, Guid platformUserId, CreateProductRequestDto createDto);
         Task<ServiceResult<ProductDto>> UpdateProductAsync(Guid tenantId, Guid platformUserId, Guid productId, UpdateProductRequestDto updateDto);

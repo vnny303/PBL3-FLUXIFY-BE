@@ -6,6 +6,7 @@ using FluxifyAPI.Mapper;
 using FluxifyAPI.Services.Interfaces;
 using FluxifyAPI.Services.Common;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace FluxifyAPI.Services.Implementations
 {
@@ -260,6 +261,14 @@ namespace FluxifyAPI.Services.Implementations
             return ServiceResult<IEnumerable<ProductDto>>.Ok(products.Select(p => p.ToProductDto()));
         }
 
+        public async Task<ServiceResult<ProductDetailDto>> GetProductDetailAsync(Guid tenantId, Guid id)
+        {
+            var product = await _productRepository.GetProductAsync(tenantId, id);
+            if (product == null)
+                return ServiceResult<ProductDetailDto>.Fail(404, "Không tìm thấy sản phẩm");
+
+            return ServiceResult<ProductDetailDto>.Ok(product.ToProductDetailDto());
+        }
         public async Task<ServiceResult<ProductDto>> GetProductAsync(Guid tenantId, Guid id)
         {
             var product = await _productRepository.GetProductAsync(tenantId, id);

@@ -18,6 +18,10 @@ namespace FluxifyAPI.DTOs.Product
 
                 public List<string>? imgUrls { get; set; }
 
+                public List<Dictionary<string, string>>? DetailSections { get; set; }
+
+                public List<Dictionary<string, string>>? Specifications { get; set; }
+
                 public List<CreateProductSkuRequestDto> Skus { get; set; } = new List<CreateProductSkuRequestDto>();
         }
 }

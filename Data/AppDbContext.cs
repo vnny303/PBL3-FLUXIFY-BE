@@ -20,12 +20,14 @@ public partial class AppDbContext : DbContext
     public DbSet<CartItem> CartItems { get; set; }
     public DbSet<Category> Categories { get; set; }
     public DbSet<Customer> Customers { get; set; }
+    public DbSet<CustomerAddress> CustomerAddresses { get; set; }
     public DbSet<Order> Orders { get; set; }
     public DbSet<OrderItem> OrderItems { get; set; }
     public DbSet<PlatformUser> PlatformUsers { get; set; }
     public DbSet<Product> Products { get; set; }
     public DbSet<ProductSku> ProductSkus { get; set; }
     public DbSet<Review> Reviews { get; set; }
+    public DbSet<TenantPaymentSetting> TenantPaymentSettings { get; set; }
     public DbSet<Tenant> Tenants { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -55,6 +57,9 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<Customer>()
             .HasIndex(c => c.TenantId);
 
+        modelBuilder.Entity<CustomerAddress>()
+            .HasIndex(ca => ca.TenantId);
+
         modelBuilder.Entity<Order>()
             .HasIndex(o => o.TenantId);
 
@@ -74,6 +79,9 @@ public partial class AppDbContext : DbContext
             .HasIndex(r => new { r.TenantId, r.ProductSkuId, r.CustomerId })
             .IsUnique();
 
+        modelBuilder.Entity<TenantPaymentSetting>()
+            .HasIndex(tps => new { tps.TenantId, tps.IsActive });
+
         // decimal
         modelBuilder.Entity<OrderItem>()
             .Property(o => o.UnitPrice)
@@ -82,6 +90,21 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<Order>()
             .Property(o => o.TotalAmount)
             .HasColumnType("decimal(18,2)");
+
+        modelBuilder.Entity<Order>()
+            .Property(o => o.Subtotal)
+            .HasColumnType("decimal(18,2)");
+
+        modelBuilder.Entity<Order>()
+            .Property(o => o.ShippingFee)
+            .HasColumnType("decimal(18,2)");
+
+        modelBuilder.Entity<Order>()
+            .Property(o => o.TaxAmount)
+            .HasColumnType("decimal(18,2)");
+
+        modelBuilder.Entity<Order>()
+            .ToTable(t => t.HasCheckConstraint("CK_orders_shipping_method", "[shipping_method] IS NULL OR [shipping_method] IN ('standard', 'express')"));
 
         modelBuilder.Entity<ProductSku>()
             .Property(p => p.Price)
@@ -97,6 +120,24 @@ public partial class AppDbContext : DbContext
             .HasOne(t => t.Owner)
             .WithMany(u => u.Tenants)
             .HasForeignKey(t => t.OwnerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<CustomerAddress>()
+            .HasOne(ca => ca.Tenant)
+            .WithMany()
+            .HasForeignKey(ca => ca.TenantId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Order>()
+            .HasOne(o => o.Address)
+            .WithMany(ca => ca.Orders)
+            .HasForeignKey(o => o.AddressId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<TenantPaymentSetting>()
+            .HasOne(tps => tps.Tenant)
+            .WithMany(t => t.PaymentSettings)
+            .HasForeignKey(tps => tps.TenantId)
             .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<Customer>()

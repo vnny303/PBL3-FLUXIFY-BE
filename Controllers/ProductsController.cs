@@ -37,7 +37,7 @@ namespace FluxifyAPI.Controllers
         // GET BY ID
         [HttpGet("{id}")]
         [AllowAnonymous]
-        public async Task<ActionResult> GetProduct(Guid tenantId, Guid id)
+        public async Task<ActionResult<ProductDetailDto>> GetProduct(Guid tenantId, Guid id)
         {
             var result = await _productService.GetProductAsync(tenantId, id);
             if (!result.Success)

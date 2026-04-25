@@ -24,6 +24,7 @@ namespace FluxifyAPI.Models
         public List<Customer> Customers { get; set; } = new List<Customer>();
         public List<Order> Orders { get; set; } = new List<Order>();
         public List<Review> Reviews { get; set; } = new List<Review>();
+        public List<TenantPaymentSetting> PaymentSettings { get; set; } = new List<TenantPaymentSetting>();
         [JsonIgnore]
         public PlatformUser Owner { get; set; } = null!;
     }

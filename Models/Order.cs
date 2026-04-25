@@ -13,20 +13,39 @@ namespace FluxifyAPI.Models
         public Guid TenantId { get; set; }
         [Column("customer_id")]
         public Guid? CustomerId { get; set; }
-        [Column("address")]
-        public string? Address { get; set; }
+        [Column("address_id")]
+        public Guid? AddressId { get; set; }
         [Column("status")]
         public string? Status { get; set; }
         [Column("payment_method")]
         public string? PaymentMethod { get; set; }
         [Column("payment_status")]
         public string? PaymentStatus { get; set; }
+        [Column("order_code")]
+        public string? OrderCode { get; set; }
+        [Column("payment_reference")]
+        public string? PaymentReference { get; set; }
+        [Column("transfer_content")]
+        public string? TransferContent { get; set; }
+        [Column("order_note")]
+        public string? OrderNote { get; set; }
+        [Column("shipping_method")]
+        public string? ShippingMethod { get; set; }
+        [Column("subtotal")]
+        public decimal Subtotal { get; set; }
+        [Column("shipping_fee")]
+        public decimal ShippingFee { get; set; }
+        [Column("tax_amount")]
+        public decimal TaxAmount { get; set; }
         [Column("total_amount")]
         public decimal TotalAmount { get; set; }
+        [Column("paid_at")]
+        public DateTime? PaidAt { get; set; }
         [Column("created_at")]
         public DateTime? CreatedAt { get; set; }
         [JsonIgnore]
         public Customer Customer { get; set; } = null!;
+        public CustomerAddress? Address { get; set; }
         public List<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
         [JsonIgnore]
         public Tenant Tenant { get; set; } = null!;

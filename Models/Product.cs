@@ -48,6 +48,13 @@ namespace FluxifyAPI.Models
         [Column("img_urls")]
 
         public List<string> imgUrls { get; set; } = new List<string>();
+
+        [Column("detail_sections")]
+        public string? DetailSections { get; set; }
+
+        [Column("specifications")]
+        public string? Specifications { get; set; }
+
         [JsonIgnore]
         public Category Category { get; set; } = null!;
         [JsonIgnore]

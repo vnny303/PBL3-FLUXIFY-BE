@@ -4,6 +4,7 @@ using FluxifyAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FluxifyAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260424133031_AddCustomerAddress")]
+    partial class AddCustomerAddress
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -234,49 +237,17 @@ namespace FluxifyAPI.Migrations
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("customer_id");
 
-                    b.Property<string>("OrderCode")
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("order_code");
-
-                    b.Property<string>("OrderNote")
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("order_note");
-
-                    b.Property<DateTime?>("PaidAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("paid_at");
-
                     b.Property<string>("PaymentMethod")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("payment_method");
-
-                    b.Property<string>("PaymentReference")
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("payment_reference");
 
                     b.Property<string>("PaymentStatus")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("payment_status");
 
-                    b.Property<decimal>("ShippingFee")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("shipping_fee");
-
-                    b.Property<string>("ShippingMethod")
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("shipping_method");
-
                     b.Property<string>("Status")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("status");
-
-                    b.Property<decimal>("Subtotal")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("subtotal");
-
-                    b.Property<decimal>("TaxAmount")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("tax_amount");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier")
@@ -286,10 +257,6 @@ namespace FluxifyAPI.Migrations
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("total_amount");
 
-                    b.Property<string>("TransferContent")
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("transfer_content");
-
                     b.HasKey("Id");
 
                     b.HasIndex("AddressId");
@@ -298,10 +265,7 @@ namespace FluxifyAPI.Migrations
 
                     b.HasIndex("TenantId");
 
-                    b.ToTable("orders", t =>
-                        {
-                            t.HasCheckConstraint("CK_orders_shipping_method", "[shipping_method] IS NULL OR [shipping_method] IN ('standard', 'express')");
-                        });
+                    b.ToTable("orders");
                 });
 
             modelBuilder.Entity("FluxifyAPI.Models.OrderItem", b =>
@@ -405,18 +369,10 @@ namespace FluxifyAPI.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("description");
 
-                    b.Property<string>("DetailSections")
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("detail_sections");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("name");
-
-                    b.Property<string>("Specifications")
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("specifications");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier")
@@ -567,56 +523,6 @@ namespace FluxifyAPI.Migrations
                         .IsUnique();
 
                     b.ToTable("tenants");
-                });
-
-            modelBuilder.Entity("FluxifyAPI.Models.TenantPaymentSetting", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("id");
-
-                    b.Property<string>("BankAccountName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("bank_account_name");
-
-                    b.Property<string>("BankAccountNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("bank_account_number");
-
-                    b.Property<string>("BankCode")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("bank_code");
-
-                    b.Property<string>("BankName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasColumnName("bank_name");
-
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("created_at");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_active");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("tenant_id");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId", "IsActive");
-
-                    b.ToTable("tenant_payment_settings");
                 });
 
             modelBuilder.Entity("FluxifyAPI.Models.Cart", b =>
@@ -808,17 +714,6 @@ namespace FluxifyAPI.Migrations
                     b.Navigation("Owner");
                 });
 
-            modelBuilder.Entity("FluxifyAPI.Models.TenantPaymentSetting", b =>
-                {
-                    b.HasOne("FluxifyAPI.Models.Tenant", "Tenant")
-                        .WithMany("PaymentSettings")
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
-                });
-
             modelBuilder.Entity("FluxifyAPI.Models.Cart", b =>
                 {
                     b.Navigation("CartItems");
@@ -877,8 +772,6 @@ namespace FluxifyAPI.Migrations
                     b.Navigation("Customers");
 
                     b.Navigation("Orders");
-
-                    b.Navigation("PaymentSettings");
 
                     b.Navigation("Reviews");
                 });

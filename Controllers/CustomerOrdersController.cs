@@ -62,7 +62,25 @@ namespace FluxifyAPI.Controllers
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
 
-            return StatusCode(result.StatusCode, result.Data);
+            var data = result.Data!;
+            return StatusCode(result.StatusCode, new
+            {
+                orderCode = data.OrderCode,
+                paymentReference = data.PaymentReference,
+                paymentMethod = data.PaymentMethod,
+                paymentStatus = data.PaymentStatus,
+                bankName = data.BankName,
+                bankCode = data.BankCode,
+                bankAccountNumber = data.BankAccountNumber,
+                bankAccountName = data.BankAccountName,
+                transferContent = data.TransferContent,
+                totalAmount = data.TotalAmount,
+                paidAt = data.PaidAt,
+                shippingMethod = data.ShippingMethod,
+                shippingFee = data.ShippingFee,
+                subtotal = data.Subtotal,
+                taxAmount = data.TaxAmount
+            });
         }
 
         [HttpPut("{orderId}/cancel")]
