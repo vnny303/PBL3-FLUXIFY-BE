@@ -39,7 +39,7 @@ namespace FluxifyAPI.Controllers
         [AllowAnonymous]
         public async Task<ActionResult<ProductDetailDto>> GetProduct(Guid tenantId, Guid id)
         {
-            var result = await _productService.GetProductAsync(tenantId, id);
+            var result = await _productService.GetProductDetailAsync(tenantId, id);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
             return StatusCode(result.StatusCode, result.Data);

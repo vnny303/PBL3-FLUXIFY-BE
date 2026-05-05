@@ -129,8 +129,8 @@ namespace FluxifyAPI.Services.Implementations
         private static ServiceResult<AnalyticsOptions> BuildOptions(QueryTenantAnalytics? query)
         {
             var normalizedQuery = query ?? new QueryTenantAnalytics();
-            var toUtc = (normalizedQuery.To ?? DateTime.UtcNow).ToUniversalTime();
-            var fromUtc = (normalizedQuery.From ?? toUtc.AddDays(-30)).ToUniversalTime();
+            var toUtc = ConvertToUtc(NormalizeToInclusiveEnd(normalizedQuery.To) ?? DateTime.UtcNow);
+            var fromUtc = ConvertToUtc(normalizedQuery.From ?? toUtc.AddDays(-30));
 
             if (fromUtc > toUtc)
                 return ServiceResult<AnalyticsOptions>.Fail(400, "from khong duoc lon hon to");
@@ -141,6 +141,26 @@ namespace FluxifyAPI.Services.Implementations
                 ToUtc = toUtc,
                 Take = normalizedQuery.Take
             });
+        }
+
+        private static DateTime? NormalizeToInclusiveEnd(DateTime? to)
+        {
+            if (!to.HasValue)
+                return null;
+
+            var value = to.Value;
+
+            // FE thường gửi yyyy-MM-dd (Kind=Unspecified, time=00:00:00). Nếu dùng thẳng sẽ chỉ lấy đúng 00:00,
+            // dẫn đến query trong cùng 1 ngày bị rỗng. Chuẩn hoá về cuối ngày để bao trọn ngày đó.
+            if (value.TimeOfDay == TimeSpan.Zero)
+                return value.Date.AddDays(1).AddTicks(-1);
+
+            return value;
+        }
+
+        private static DateTime ConvertToUtc(DateTime value)
+        {
+            return value.Kind == DateTimeKind.Utc ? value : value.ToUniversalTime();
         }
 
         private async Task<List<OrderAggregateRecord>> GetOrderAggregateRecordsAsync(Guid tenantId, AnalyticsOptions options)
