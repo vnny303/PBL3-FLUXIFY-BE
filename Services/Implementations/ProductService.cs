@@ -8,6 +8,7 @@ using FluxifyAPI.Services.Common;
 using FluxifyAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace FluxifyAPI.Services.Implementations
 {
@@ -223,8 +224,8 @@ namespace FluxifyAPI.Services.Implementations
                 productQuery = productQuery.Where(p => p.CategoryId == query.CategoryId.Value);
             if (query.HasAttributes.HasValue)
                 productQuery = query.HasAttributes.Value
-                    ? productQuery.Where(p => !string.IsNullOrEmpty(p.Attributes))
-                    : productQuery.Where(p => string.IsNullOrEmpty(p.Attributes));
+                    ? productQuery.Where(p => !string.IsNullOrEmpty(p.AttributesJson))
+                    : productQuery.Where(p => string.IsNullOrEmpty(p.AttributesJson));
             if (query.PriceFrom.HasValue && query.PriceFrom.Value < 0)
                 return ServiceResult<IEnumerable<ProductDto>>.Fail(400, "PriceFrom phải lớn hơn hoặc bằng 0");
             if (query.PriceTo.HasValue && query.PriceTo.Value < 0)
@@ -257,6 +258,14 @@ namespace FluxifyAPI.Services.Implementations
             return ServiceResult<IEnumerable<ProductDto>>.Ok(products.Select(p => p.ToProductDto()));
         }
 
+        public async Task<ServiceResult<ProductDetailDto>> GetProductDetailAsync(Guid tenantId, Guid id)
+        {
+            var product = await _productRepository.GetProductAsync(tenantId, id);
+            if (product == null)
+                return ServiceResult<ProductDetailDto>.Fail(404, "Không tìm thấy sản phẩm");
+
+            return ServiceResult<ProductDetailDto>.Ok(product.ToProductDetailDto());
+        }
         public async Task<ServiceResult<ProductDto>> GetProductAsync(Guid tenantId, Guid id)
         {
             var product = await _productRepository.GetProductAsync(tenantId, id);

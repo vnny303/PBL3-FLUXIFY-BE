@@ -11,10 +11,14 @@ namespace FluxifyAPI.Services.Implementations
 {
     public class OrderService : IOrderService
     {
+        private const double StandardShippingFee = 15000;
+        private const double ExpressShippingFee = 30000;
+
         private readonly IOrderRepository _orderRepository;
         private readonly IOrderItemRepository _orderItemRepository;
         private readonly ICustomerRepository _customerRepository;
         private readonly ITenantRepository _tenantRepository;
+        private readonly ITenantPaymentSettingRepository _tenantPaymentSettingRepository;
         private readonly ICartRepository _cartRepository;
         private readonly ICartItemRepository _cartItemRepository;
         private readonly IProductSkuRepository _productSkuRepository;
@@ -24,6 +28,7 @@ namespace FluxifyAPI.Services.Implementations
             IOrderItemRepository orderItemRepository,
             ICustomerRepository customerRepository,
             ITenantRepository tenantRepository,
+            ITenantPaymentSettingRepository tenantPaymentSettingRepository,
             ICartRepository cartRepository,
             ICartItemRepository cartItemRepository,
             IProductSkuRepository productSkuRepository)
@@ -32,6 +37,7 @@ namespace FluxifyAPI.Services.Implementations
             _orderItemRepository = orderItemRepository;
             _customerRepository = customerRepository;
             _tenantRepository = tenantRepository;
+            _tenantPaymentSettingRepository = tenantPaymentSettingRepository;
             _cartRepository = cartRepository;
             _cartItemRepository = cartItemRepository;
             _productSkuRepository = productSkuRepository;
@@ -51,14 +57,15 @@ namespace FluxifyAPI.Services.Implementations
                     orderQuery = orderQuery.Where(o =>
                         o.Id == orderOrCustomerId ||
                         o.CustomerId == orderOrCustomerId ||
-                        (o.Address != null && o.Address.Contains(query.SearchTerm)) ||
+                        (o.Address != null && o.Address.StreetAddress.Contains(query.SearchTerm)) ||
                         (o.Status != null && o.Status.Contains(query.SearchTerm)));
                 else
                     orderQuery = orderQuery.Where(o =>
-                        (o.Address != null && o.Address.Contains(query.SearchTerm)) ||
+                        (o.Address != null && o.Address.StreetAddress.Contains(query.SearchTerm)) ||
                         (o.Status != null && o.Status.Contains(query.SearchTerm)) ||
                         (o.PaymentMethod != null && o.PaymentMethod.Contains(query.SearchTerm)) ||
                         (o.PaymentStatus != null && o.PaymentStatus.Contains(query.SearchTerm)));
+
             if (query.CustomerId.HasValue)
                 orderQuery = orderQuery.Where(o => o.CustomerId == query.CustomerId.Value);
             if (!string.IsNullOrWhiteSpace(query.Status))
@@ -198,15 +205,15 @@ namespace FluxifyAPI.Services.Implementations
             {
                 if (Guid.TryParse(query.SearchTerm, out var orderId))
                 {
-                    orderQuery = orderQuery
-                        .Where(o => o.Id == orderId ||
-                        (o.Address != null && o.Address.Contains(query.SearchTerm)) ||
+                    orderQuery = orderQuery.Where(o =>
+                        o.Id == orderId ||
+                        (o.Address != null && o.Address.StreetAddress.Contains(query.SearchTerm)) ||
                         (o.Status != null && o.Status.Contains(query.SearchTerm)));
                 }
                 else
                 {
                     orderQuery = orderQuery.Where(o =>
-                        (o.Address != null && o.Address.Contains(query.SearchTerm)) ||
+                        (o.Address != null && o.Address.StreetAddress.Contains(query.SearchTerm)) ||
                         (o.Status != null && o.Status.Contains(query.SearchTerm)) ||
                         (o.PaymentMethod != null && o.PaymentMethod.Contains(query.SearchTerm)) ||
                         (o.PaymentStatus != null && o.PaymentStatus.Contains(query.SearchTerm)));
@@ -279,6 +286,12 @@ namespace FluxifyAPI.Services.Implementations
             if (!await _customerRepository.CustomerExists(tenantId, customerId))
                 return ServiceResult<OrderDto>.Fail(404, "Không tìm thấy khách hàng");
 
+            var normalizedShippingMethod = NormalizeShippingMethod(checkoutDto.ShippingMethod);
+            if (normalizedShippingMethod == null)
+                return ServiceResult<OrderDto>.Fail(400, "shippingMethod chỉ hỗ trợ standard hoặc express");
+
+            var normalizedPaymentMethod = string.IsNullOrWhiteSpace(checkoutDto.PaymentMethod) ? "COD" : checkoutDto.PaymentMethod.Trim();
+
             var cart = await _cartRepository.GetCartAsync(tenantId, customerId);
             if (cart == null)
                 return ServiceResult<OrderDto>.Fail(404, "Không tìm thấy giỏ hàng");
@@ -290,7 +303,7 @@ namespace FluxifyAPI.Services.Implementations
 
             var skuByCartItemId = new Dictionary<Guid, Models.ProductSku>();
             var orderItems = new List<Models.OrderItem>();
-            double totalAmount = 0;
+            double subtotal = 0;
 
             foreach (var cartItem in cartItems)
             {
@@ -314,7 +327,33 @@ namespace FluxifyAPI.Services.Implementations
                     UnitPrice = sku.Price
                 });
 
-                totalAmount += sku.Price * cartItem.Quantity;
+                subtotal += sku.Price * cartItem.Quantity;
+            }
+
+            var shippingFee = normalizedShippingMethod == "express" ? ExpressShippingFee : StandardShippingFee;
+            var taxAmount = 0;
+            var totalAmount = subtotal + shippingFee + taxAmount;
+
+            var now = DateTime.UtcNow;
+            var orderCode = await BuildOrderCodeAsync(tenantId, now);
+            var paymentReference = orderCode;
+            var transferContent = orderCode;
+
+            string? bankName = null;
+            string? bankCode = null;
+            string? bankAccountNumber = null;
+            string? bankAccountName = null;
+
+            if (string.Equals(normalizedPaymentMethod, "BankTransfer", StringComparison.OrdinalIgnoreCase))
+            {
+                var bankSettings = await _tenantPaymentSettingRepository.GetActiveByTenantIdAsync(tenantId);
+                if (bankSettings == null)
+                    return ServiceResult<OrderDto>.Fail(400, "Tenant chưa cấu hình thông tin nhận chuyển khoản");
+
+                bankName = bankSettings.BankName;
+                bankCode = bankSettings.BankCode;
+                bankAccountNumber = bankSettings.BankAccountNumber;
+                bankAccountName = bankSettings.BankAccountName;
             }
 
             var order = new Models.Order
@@ -322,12 +361,21 @@ namespace FluxifyAPI.Services.Implementations
                 Id = Guid.NewGuid(),
                 TenantId = tenantId,
                 CustomerId = customerId,
-                Address = checkoutDto.Address.Trim(),
+                AddressId = checkoutDto.AddressId,
                 Status = "Pending",
-                PaymentMethod = string.IsNullOrWhiteSpace(checkoutDto.PaymentMethod) ? "COD" : checkoutDto.PaymentMethod.Trim(),
+                PaymentMethod = normalizedPaymentMethod,
                 PaymentStatus = "Pending",
+                OrderCode = orderCode,
+                PaymentReference = paymentReference,
+                TransferContent = transferContent,
+                OrderNote = string.IsNullOrWhiteSpace(checkoutDto.OrderNote) ? null : checkoutDto.OrderNote.Trim(),
+                ShippingMethod = normalizedShippingMethod,
+                Subtotal = subtotal,
+                ShippingFee = shippingFee,
+                TaxAmount = taxAmount,
                 TotalAmount = totalAmount,
-                CreatedAt = DateTime.UtcNow,
+                PaidAt = null,
+                CreatedAt = now,
                 OrderItems = orderItems
             };
 
@@ -341,8 +389,37 @@ namespace FluxifyAPI.Services.Implementations
                 await _cartItemRepository.DeleteCartItemAsync(tenantId, customerId, cartItem.Id);
             }
 
-            return ServiceResult<OrderDto>.Created(createdOrder.ToOrderDto());
+            var response = createdOrder.ToOrderDto();
+            response.BankName = bankName;
+            response.BankCode = bankCode;
+            response.BankAccountNumber = bankAccountNumber;
+            response.BankAccountName = bankAccountName;
+
+            return ServiceResult<OrderDto>.Created(response);
         }
+
+        private static string? NormalizeShippingMethod(string? shippingMethod)
+        {
+            if (string.IsNullOrWhiteSpace(shippingMethod))
+                return "standard";
+
+            var normalized = shippingMethod.Trim().ToLowerInvariant();
+            if (normalized == "standard" || normalized == "express")
+                return normalized;
+
+            return null;
+        }
+
+        private async Task<string> BuildOrderCodeAsync(Guid tenantId, DateTime now)
+        {
+            var date = now.Date;
+            var nextSequence = await _orderRepository.GetOrdersByTenantQuery(tenantId)
+                .Where(o => o.CreatedAt.HasValue && o.CreatedAt.Value.Date == date)
+                .CountAsync() + 1;
+
+            return $"ORD-{now:yyyyMMdd}-{nextSequence:D4}";
+        }
+
 
         public async Task<ServiceResult<object>> CancelMyOrderAsync(Guid tenantId, Guid customerId, Guid orderId)
         {
@@ -384,6 +461,7 @@ namespace FluxifyAPI.Services.Implementations
         }
     }
 }
+
 
 
 

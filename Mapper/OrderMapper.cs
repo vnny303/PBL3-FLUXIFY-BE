@@ -16,11 +16,20 @@ namespace FluxifyAPI.Mapper
                 Id = order.Id,
                 TenantId = order.TenantId,
                 CustomerId = order.CustomerId,
-                Address = order.Address,
+                AddressId = order.AddressId,
                 Status = order.Status,
                 PaymentMethod = order.PaymentMethod,
                 PaymentStatus = order.PaymentStatus,
+                OrderCode = order.OrderCode,
+                PaymentReference = order.PaymentReference,
+                TransferContent = order.TransferContent,
+                OrderNote = order.OrderNote,
+                ShippingMethod = order.ShippingMethod,
+                Subtotal = order.Subtotal,
+                ShippingFee = order.ShippingFee,
+                TaxAmount = order.TaxAmount,
                 TotalAmount = order.TotalAmount,
+                PaidAt = order.PaidAt,
                 CreatedAt = order.CreatedAt,
                 OrderItems = order.OrderItems.Select(oi => oi.ToOrderItemDto()).ToList()
             };
@@ -47,15 +56,19 @@ namespace FluxifyAPI.Mapper
                 Id = orderId,
                 TenantId = tenantId,
                 CustomerId = createDto.CustomerId,
-                Address = createDto.Address.Trim(),
+                AddressId = createDto.AddressId,
                 Status = "Pending",
                 PaymentMethod = string.IsNullOrWhiteSpace(createDto.PaymentMethod) ? "COD" : createDto.PaymentMethod.Trim(),
                 PaymentStatus = string.IsNullOrWhiteSpace(createDto.PaymentStatus) ? "Pending" : createDto.PaymentStatus.Trim(),
+                ShippingMethod = "standard",
+                Subtotal = createDto.OrderItems.Sum(i => i.UnitPrice * i.Quantity),
+                ShippingFee = 0,
+                TaxAmount = 0,
                 CreatedAt = DateTime.UtcNow,
                 OrderItems = createDto.OrderItems.Select(i => i.ToOrderItemFromCreateDto(orderId)).ToList()
             };
 
-            order.TotalAmount = order.OrderItems.Sum(i => i.UnitPrice * i.Quantity);
+            order.TotalAmount = order.Subtotal;
             return order;
         }
 

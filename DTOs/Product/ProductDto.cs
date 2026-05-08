@@ -13,8 +13,13 @@ namespace FluxifyAPI.DTOs.Product
         public string? Description { get; set; }
         public Dictionary<string, List<string>>? Attributes { get; set; }
         public List<string>? imgUrls { get; set; }
-        public double MinPrice => ProductSkus.Count == 0 ? 0 : ProductSkus.Min(ps => ps.Price);
-        public double MaxPrice => ProductSkus.Count == 0 ? 0 : ProductSkus.Max(ps => ps.Price);
+
+        public double AverageRating { get; set; }
+
+        public int ReviewCount { get; set; }
+
+        public List<Dictionary<string, string>> DetailSections { get; set; } = new List<Dictionary<string, string>>();
+        public List<Dictionary<string, string>> Specifications { get; set; } = new List<Dictionary<string, string>>();
         public List<ProductSkuDto> ProductSkus { get; set; } = new List<ProductSkuDto>();
     }
 }

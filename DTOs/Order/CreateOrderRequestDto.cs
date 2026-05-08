@@ -7,7 +7,7 @@ namespace FluxifyAPI.DTOs.Order
         public Guid? CustomerId { get; set; }
 
         [Required(ErrorMessage = "Địa chỉ không được để trống")]
-        public string Address { get; set; } = string.Empty;
+        public Guid AddressId { get; set; }
 
         public string? PaymentMethod { get; set; }
 

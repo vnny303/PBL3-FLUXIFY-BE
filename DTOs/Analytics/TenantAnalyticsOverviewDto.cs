@@ -6,9 +6,9 @@ namespace FluxifyAPI.DTOs.Analytics
         public DateTime ToUtc { get; set; }
         public int TotalOrders { get; set; }
         public int PaidOrders { get; set; }
-        public decimal GrossRevenue { get; set; }
-        public decimal PaidRevenue { get; set; }
-        public decimal AverageOrderValue { get; set; }
+        public double GrossRevenue { get; set; }
+        public double PaidRevenue { get; set; }
+        public double AverageOrderValue { get; set; }
         public int NewCustomers { get; set; }
         public int ActiveCustomers { get; set; }
     }

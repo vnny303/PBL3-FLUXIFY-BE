@@ -303,7 +303,7 @@ namespace FluxifyAPI.Services.Implementations
             foreach (var customer in _customerRepository.GetCustomersByTenantQuery(id))
             {
                 foreach (var cartItem in await _cartItemRepository.GetCartItemsAsync(id, customer.Id) ?? Enumerable.Empty<CartItem>())
-                    await _cartItemRepository.DeleteCartItemAsync(id, cartItem.Id);
+                    await _cartItemRepository.DeleteCartItemAsync(id, null, cartItem.Id);
                 await _customerRepository.DeleteCustomerAsync(id, customer.Id);
             }
             foreach (var product in _productRepository.GetProductsByTenant(id))

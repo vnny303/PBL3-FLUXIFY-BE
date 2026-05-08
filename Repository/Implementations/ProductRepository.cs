@@ -18,6 +18,7 @@ namespace FluxifyAPI.Repository.Implementations
         {
             return await _context.Products
                 .Include(p => p.ProductSkus)
+                    .ThenInclude(ps => ps.Reviews)
                 .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == productId);
         }
 
@@ -25,6 +26,7 @@ namespace FluxifyAPI.Repository.Implementations
         {
             return _context.Products
                 .Include(p => p.ProductSkus)
+                    .ThenInclude(ps => ps.Reviews)
                 .Where(p => p.TenantId == tenantId)
                 .AsNoTracking();
         }
