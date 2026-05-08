@@ -254,7 +254,7 @@ namespace FluxifyAPI.Services.Implementations
             var tenant = await _tenantRepository.GetTenantBySubdomainAsync(subdomain);
             if (!await _tenantRepository.SubdomainExists(subdomain) || tenant == null)
                 return ServiceResult<object>.Fail(404, "Tenant không tồn tại");
-            if (await _tenantRepository.IsTenantOwner(tenant.Id, ownerId))
+            if (!await _tenantRepository.IsTenantOwner(tenant.Id, ownerId))
                 return ServiceResult<object>.Forbidden("Bạn không có quyền cập nhật nội dung tenant này");
 
             var currentContent = tenant.ContentConfigJson.ToContentConfigDto();

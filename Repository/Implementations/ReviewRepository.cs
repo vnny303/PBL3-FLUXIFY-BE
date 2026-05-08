@@ -61,5 +61,19 @@ namespace FluxifyAPI.Repository.Implementations
             await _context.SaveChangesAsync();
             return review;
         }
+
+        public async Task<int> DeleteReviewsByProductSkuAsync(Guid tenantId, Guid productSkuId)
+        {
+            var reviews = await _context.Reviews
+                .Where(r => r.TenantId == tenantId && r.ProductSkuId == productSkuId)
+                .ToListAsync();
+
+            if (reviews.Count == 0)
+                return 0;
+
+            _context.Reviews.RemoveRange(reviews);
+            await _context.SaveChangesAsync();
+            return reviews.Count;
+        }
     }
 }

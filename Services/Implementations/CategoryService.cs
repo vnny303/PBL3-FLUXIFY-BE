@@ -106,7 +106,7 @@ namespace FluxifyAPI.Services.Implementations
                 return ServiceResult<object>.Forbidden("Bạn không có quyền đối với danh mục của tenant này!");
             if (!await _categoryRepository.CategoryExists(tenantId, categoryId))
                 return ServiceResult<object>.Fail(404, "Không tìm thấy danh mục!");
-            foreach (var product in (await _categoryRepository.GetCategoryAsync(tenantId, categoryId)).Products ?? Enumerable.Empty<Product>())
+            foreach (var product in (await _categoryRepository.GetCategoryAsync(tenantId, categoryId))?.Products ?? Enumerable.Empty<Product>())
             {
                 foreach (var productSku in await _productSkuRepository.GetProductSkusByProductAsync(tenantId, product.Id) ?? Enumerable.Empty<ProductSku>())
                     await _productSkuRepository.DeleteProductSkuAsync(tenantId, productSku.Id);

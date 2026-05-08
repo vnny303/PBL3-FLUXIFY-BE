@@ -12,5 +12,6 @@ namespace FluxifyAPI.Repository.Interfaces
         Task<CartItem> AddToCartAsync(CartItem cartItemModel);
         Task<CartItem?> UpdateCartItemAsync(CartItem cartItemModel);
         Task<CartItem?> DeleteCartItemAsync(Guid tenantId, Guid? customerId, Guid cartItemId);
+        Task<int> DeleteCartItemsByProductSkuAsync(Guid tenantId, Guid productSkuId);
     }
 }

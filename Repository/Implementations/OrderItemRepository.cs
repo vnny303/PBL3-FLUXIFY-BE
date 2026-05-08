@@ -34,6 +34,17 @@ namespace FluxifyAPI.Repository.Implementations
                 .ToListAsync();
         }
 
+        public async Task<bool> HasOrderItemsByProductSkusAsync(Guid tenantId, IEnumerable<Guid> productSkuIds)
+        {
+            var skuIdList = productSkuIds?.Distinct().ToList() ?? new List<Guid>();
+            if (skuIdList.Count == 0)
+                return false;
+
+            return await _context.OrderItems
+                .Include(oi => oi.Order)
+                .AnyAsync(oi => skuIdList.Contains(oi.ProductSkuId) && oi.Order.TenantId == tenantId);
+        }
+
         public async Task<OrderItem> CreateOrderItemAsync(Guid tenantId, Guid orderId, Guid productSkuId, int quantity, double price)
         {
             var orderBelongsToTenant = await _context.Orders

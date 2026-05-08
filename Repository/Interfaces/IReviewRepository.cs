@@ -10,5 +10,6 @@ namespace FluxifyAPI.Repository.Interfaces
         Task<Review> CreateReviewAsync(Review review);
         Task<Review> UpdateReviewAsync(Review review);
         Task<Review?> DeleteReviewAsync(Guid tenantId, Guid reviewId);
+        Task<int> DeleteReviewsByProductSkuAsync(Guid tenantId, Guid productSkuId);
     }
 }

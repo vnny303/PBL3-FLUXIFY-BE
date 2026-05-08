@@ -26,17 +26,26 @@ namespace FluxifyAPI.Services.Implementations
         private readonly IProductSkuRepository _productSkuRepository;
         private readonly ICategoryRepository _categoryRepository;
         private readonly ITenantRepository _tenantRepository;
+        private readonly ICartItemRepository _cartItemRepository;
+        private readonly IReviewRepository _reviewRepository;
+        private readonly IOrderItemRepository _orderItemRepository;
 
         public ProductService(
             IProductRepository productRepository,
             IProductSkuRepository productSkuRepository,
             ICategoryRepository categoryRepository,
-            ITenantRepository tenantRepository)
+            ITenantRepository tenantRepository,
+            ICartItemRepository cartItemRepository,
+            IReviewRepository reviewRepository,
+            IOrderItemRepository orderItemRepository)
         {
             _productRepository = productRepository;
             _productSkuRepository = productSkuRepository;
             _categoryRepository = categoryRepository;
             _tenantRepository = tenantRepository;
+            _cartItemRepository = cartItemRepository;
+            _reviewRepository = reviewRepository;
+            _orderItemRepository = orderItemRepository;
         }
 
         private static Dictionary<string, List<string>>? NormalizeProductAttributes(Dictionary<string, List<string>>? attributes)
@@ -210,6 +219,25 @@ namespace FluxifyAPI.Services.Implementations
             });
         }
 
+        private async Task<ServiceResult<object>> RemoveProductSkusAsync(Guid tenantId, IEnumerable<ProductSku> skus)
+        {
+            var skuIdList = skus?.Select(sku => sku.Id).Distinct().ToList() ?? new List<Guid>();
+            if (skuIdList.Count == 0)
+                return ServiceResult<object>.Ok(new { message = "Không có SKU cần xóa" });
+
+            if (await _orderItemRepository.HasOrderItemsByProductSkusAsync(tenantId, skuIdList))
+                return ServiceResult<object>.Fail(400, "Không thể xóa SKU vì đang được tham chiếu trong đơn hàng");
+
+            foreach (var skuId in skuIdList)
+            {
+                await _cartItemRepository.DeleteCartItemsByProductSkuAsync(tenantId, skuId);
+                await _reviewRepository.DeleteReviewsByProductSkuAsync(tenantId, skuId);
+                await _productSkuRepository.DeleteProductSkuAsync(tenantId, skuId);
+            }
+
+            return ServiceResult<object>.Ok(new { message = "Đã xóa SKU và dữ liệu liên quan" });
+        }
+
         public async Task<ServiceResult<IEnumerable<ProductDto>>> GetProductsAsync(Guid tenantId, QueryProduct query)
         {
             var productQuery = _productRepository.GetProductsByTenant(tenantId);
@@ -307,29 +335,46 @@ namespace FluxifyAPI.Services.Implementations
                 return ServiceResult<ProductDto>.Fail(404, "không tìm thấy sản phẩm!");
             if (updateDto.CategoryId.HasValue && !await _categoryRepository.CategoryExists(tenantId, updateDto.CategoryId.Value))
                 return ServiceResult<ProductDto>.Fail(400, "Category không tồn tại trong tenant này");
-            // Xóa tất cả SKU cũ trước khi cập nhật sản phẩm để đảm bảo dữ liệu nhất quán
-            foreach (var oldProductSku in await _productSkuRepository.GetProductSkusByProductAsync(tenantId, productId) ?? Enumerable.Empty<ProductSku>())
-                await _productSkuRepository.DeleteProductSkuAsync(tenantId, oldProductSku.Id);
+
+            if (updateDto.Skus != null)
+            {
+                var oldSkus = await _productSkuRepository.GetProductSkusByProductAsync(tenantId, productId)
+                    ?? Enumerable.Empty<ProductSku>();
+                var removeSkusResult = await RemoveProductSkusAsync(tenantId, oldSkus);
+                if (!removeSkusResult.Success)
+                    return ServiceResult<ProductDto>.Fail(removeSkusResult.StatusCode, removeSkusResult.Message ?? "Không thể cập nhật SKU");
+            }
 
             updateDto.ToProductFromUpdateDto(product);
             var updatedProduct = await _productRepository.UpdateProductAsync(product);
+
+            if (updateDto.Skus != null)
+            {
+                foreach (var newSku in updateDto.Skus)
+                {
+                    var productSku = newSku.ToProductSkuFromCreateDto(productId);
+                    await _productSkuRepository.CreateProductSkuAsync(productSku);
+                }
+
+                updatedProduct = await _productRepository.GetProductAsync(tenantId, productId) ?? updatedProduct;
+            }
+
             return ServiceResult<ProductDto>.Ok(updatedProduct.ToProductDto());
         }
         public async Task<ServiceResult<object>> DeleteProductAsync(Guid tenantId, Guid platformUserId, Guid productId)
         {
-            try
-            {
-                if (!await _tenantRepository.IsTenantOwner(tenantId, platformUserId))
-                    return ServiceResult<object>.Forbidden("Bạn không có quyền đối với sản phẩm này");
-                var product = await _productRepository.DeleteProductAsync(tenantId, productId);
-                if (product == null)
-                    return ServiceResult<object>.Fail(404, "không tìm thấy sản phẩm!");
-                return ServiceResult<object>.Ok(new { message = "Xoa thanh cong!" });
-            }
-            catch (DbUpdateException)
-            {
-                return ServiceResult<object>.Fail(400, "Không thể xóa sản phẩm vì SKU đang được tham chiếu trong giỏ hàng hoặc đơn hàng");
-            }
+            if (!await _tenantRepository.IsTenantOwner(tenantId, platformUserId))
+                return ServiceResult<object>.Forbidden("Bạn không có quyền đối với sản phẩm này");
+            var product = await _productRepository.GetProductAsync(tenantId, productId);
+            if (product == null)
+                return ServiceResult<object>.Fail(404, "không tìm thấy sản phẩm!");
+
+            var removeSkusResult = await RemoveProductSkusAsync(tenantId, product.ProductSkus);
+            if (!removeSkusResult.Success)
+                return ServiceResult<object>.Fail(removeSkusResult.StatusCode, removeSkusResult.Message ?? "Không thể xóa sản phẩm");
+
+            await _productRepository.DeleteProductAsync(tenantId, productId);
+            return ServiceResult<object>.Ok(new { message = "Xoa thanh cong!" });
         }
 
         public async Task<ServiceResult<IEnumerable<ProductSkuDto>>> GetSkusAsync(Guid tenantId, Guid productId)
@@ -375,15 +420,11 @@ namespace FluxifyAPI.Services.Implementations
             if (sku == null || sku.ProductId != productId)
                 return ServiceResult<object>.Fail(404, "Không tìm thấy SKU!");
 
-            try
-            {
-                await _productSkuRepository.DeleteProductSkuAsync(tenantId, skuId);
-                return ServiceResult<object>.Ok(new { message = "Xóa SKU thành công!" });
-            }
-            catch (DbUpdateException)
-            {
-                return ServiceResult<object>.Fail(400, "Không thể xóa SKU vì đang được tham chiếu trong giỏ hàng hoặc đơn hàng");
-            }
+            var removeSkusResult = await RemoveProductSkusAsync(tenantId, new[] { sku });
+            if (!removeSkusResult.Success)
+                return ServiceResult<object>.Fail(removeSkusResult.StatusCode, removeSkusResult.Message ?? "Không thể xóa SKU");
+
+            return ServiceResult<object>.Ok(new { message = "Xóa SKU thành công!" });
         }
     }
 }

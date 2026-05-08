@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using FluxifyAPI.DTOs.ProductSku;
 
 namespace FluxifyAPI.DTOs.Product
 {
@@ -12,6 +13,7 @@ namespace FluxifyAPI.DTOs.Product
                 public List<string>? imgUrls { get; set; }
                 public List<DetailSectionDto>? DetailSections { get; set; }
                 public List<SpecificationDto>? Specifications { get; set; }
+                public List<CreateProductSkuRequestDto>? Skus { get; set; }
         }
 }
 

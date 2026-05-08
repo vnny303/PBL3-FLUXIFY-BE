@@ -72,7 +72,7 @@ namespace FluxifyAPI.Controllers
             return StatusCode(result.StatusCode, result.Data);
         }
 
-        // PUT: Cap nhat thong tin san pham (khong bao gom SKUs)
+        // PUT: Cap nhat thong tin san pham (neu co "skus" se replace danh sach SKU)
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateProduct(Guid tenantId, Guid id, [FromBody] UpdateProductRequestDto updateDto)
         {

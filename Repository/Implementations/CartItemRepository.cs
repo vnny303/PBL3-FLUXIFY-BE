@@ -70,6 +70,21 @@ namespace FluxifyAPI.Repository.Implementations
 
             return cartItem;
         }
+
+        public async Task<int> DeleteCartItemsByProductSkuAsync(Guid tenantId, Guid productSkuId)
+        {
+            var cartItems = await _context.CartItems
+                .Include(ci => ci.Cart)
+                .Where(ci => ci.ProductSkuId == productSkuId && ci.Cart.TenantId == tenantId)
+                .ToListAsync();
+
+            if (cartItems.Count == 0)
+                return 0;
+
+            _context.CartItems.RemoveRange(cartItems);
+            await _context.SaveChangesAsync();
+            return cartItems.Count;
+        }
     }
 }
 
