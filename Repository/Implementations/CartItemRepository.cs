@@ -23,16 +23,16 @@ namespace FluxifyAPI.Repository.Implementations
                 .ToListAsync();
         }
 
-        public async Task<CartItem?> GetCartItemByIdAsync(Guid tenantId, Guid customerId, Guid cartItemId)
+        public async Task<CartItem?> GetCartItemByIdAsync(Guid tenantId, Guid? customerId, Guid cartItemId)
         {
             return await _context.CartItems
                 .Include(ci => ci.ProductSku)
                 .FirstOrDefaultAsync(ci => ci.Id == cartItemId
-                    && ci.Cart.CustomerId == customerId
+                    && (customerId == null || ci.Cart.CustomerId == customerId)
                     && ci.Cart.TenantId == tenantId);
         }
 
-        public async Task<CartItem?> GetCartItemAsync(Guid tenantId, Guid customerId, Guid productSkuId)
+        public async Task<CartItem?> GetCartItemAsync(Guid tenantId, Guid? customerId, Guid productSkuId)
         {
             return await _context.CartItems
                 .Include(ci => ci.ProductSku)
@@ -46,7 +46,6 @@ namespace FluxifyAPI.Repository.Implementations
         {
             await _context.CartItems.AddAsync(cartItemModel);
             await _context.SaveChangesAsync();
-
             return cartItemModel;
         }
         public async Task<CartItem?> UpdateCartItemAsync(CartItem cartItemModel)
@@ -57,19 +56,15 @@ namespace FluxifyAPI.Repository.Implementations
             return cartItemModel;
         }
 
-        public async Task<CartItem?> DeleteCartItemAsync(Guid tenantId, Guid customerId, Guid cartItemId)
+        public async Task<CartItem?> DeleteCartItemAsync(Guid tenantId, Guid? customerId, Guid cartItemId)
         {
             var cartItem = await _context.CartItems
                 .Include(ci => ci.Cart)
                 .FirstOrDefaultAsync(ci => ci.Id == cartItemId
-                    && ci.Cart.CustomerId == customerId
+                    && (customerId == null || ci.Cart.CustomerId == customerId)
                     && ci.Cart.TenantId == tenantId);
-
             if (cartItem == null)
-            {
                 return null;
-            }
-
             _context.CartItems.Remove(cartItem);
             await _context.SaveChangesAsync();
 

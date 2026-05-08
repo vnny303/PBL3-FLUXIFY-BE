@@ -21,7 +21,7 @@ namespace FluxifyAPI.Repository.Implementations
                 .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.Id == categoryId);
         }
 
-        public IQueryable<Category> GetCategoriesByTenant(Guid tenantId)
+        public IQueryable<Category> GetCategoriesByTenantQuery(Guid tenantId)
         {
             return _context.Categories
                 .Where(c => c.TenantId == tenantId)
@@ -52,16 +52,15 @@ namespace FluxifyAPI.Repository.Implementations
                 return null;
             _context.Categories.Remove(category);
             await _context.SaveChangesAsync();
-
             return category;
         }
 
-        public async Task<bool> IsCategoryNameExists(Guid tenantId, string name)
+        public async Task<bool> CategoryNameExists(Guid tenantId, string name)
         {
             return await _context.Categories.AnyAsync(c => c.TenantId == tenantId && c.Name == name);
         }
 
-        public async Task<bool> IsCategoryExists(Guid tenantId, Guid categoryId)
+        public async Task<bool> CategoryExists(Guid tenantId, Guid categoryId)
         {
             return await _context.Categories.AnyAsync(c => c.TenantId == tenantId && c.Id == categoryId);
         }

@@ -26,7 +26,7 @@ namespace FluxifyAPI.Repository.Implementations
             return orderItem;
         }
 
-        public async Task<List<OrderItem>?> GetOrderItemsByOrderAsync(Guid tenantId, Guid orderId)
+        public async Task<List<OrderItem>> GetOrderItemsByOrderAsync(Guid tenantId, Guid orderId)
         {
             return await _context.OrderItems
                 .Include(oi => oi.Order)
@@ -34,7 +34,7 @@ namespace FluxifyAPI.Repository.Implementations
                 .ToListAsync();
         }
 
-        public async Task<OrderItem> CreateOrderItemAsync(Guid tenantId, Guid orderId, Guid productSkuId, int quantity, decimal price)
+        public async Task<OrderItem> CreateOrderItemAsync(Guid tenantId, Guid orderId, Guid productSkuId, int quantity, double price)
         {
             var orderBelongsToTenant = await _context.Orders
                 .AnyAsync(o => o.Id == orderId && o.TenantId == tenantId);
@@ -59,7 +59,7 @@ namespace FluxifyAPI.Repository.Implementations
             return orderItem;
         }
 
-        public async Task<OrderItem?> UpdateOrderItemAsync(Guid tenantId, Guid orderItemId, int quantity, decimal price)
+        public async Task<OrderItem?> UpdateOrderItemAsync(Guid tenantId, Guid orderItemId, int quantity, double price)
         {
             var orderItem = await _context.OrderItems
                 .Include(oi => oi.Order)

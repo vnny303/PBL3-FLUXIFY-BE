@@ -6,7 +6,7 @@ namespace FluxifyAPI.Services.Interfaces
 {
     public interface ITenantService
     {
-        Task<ServiceResult<IEnumerable<object>>> GetMyTenantsAsync(Guid ownerId, QueryTenant query);
+        Task<ServiceResult<IEnumerable<StorefrontTenantLookupDto>>> GetMyTenantsAsync(Guid ownerId, QueryTenant query);
         Task<ServiceResult<TenantDto>> GetTenantAsync(Guid id, Guid ownerId);
         Task<ServiceResult<StorefrontTenantLookupDto>> GetTenantBySubdomainAsync(string subdomain);
         Task<ServiceResult<object>> CreateTenantAsync(Guid ownerId, CreateTenantRequestDto tenantDto);

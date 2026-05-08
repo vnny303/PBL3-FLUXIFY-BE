@@ -9,12 +9,11 @@ namespace FluxifyAPI.Repository.Interfaces
     public interface IProductRepository
     {
         Task<Product?> GetProductAsync(Guid tenantId, Guid productId);
-        public IQueryable<Product> GetProductByCategory(Guid tenantId, Guid categoryId);
         public IQueryable<Product> GetProductsByTenant(Guid tenantId);
         Task<Product> CreateProductAsync(Product product);
         Task<Product> UpdateProductAsync(Product product);
         Task<Product?> DeleteProductAsync(Guid tenantId, Guid productId);
-        Task<bool> IsProductExists(Guid tenantId, Guid productId);
+        Task<bool> ProductExists(Guid tenantId, Guid productId);
     }
 }
 

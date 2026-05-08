@@ -4,8 +4,13 @@ namespace FluxifyAPI.Helpers
 {
     public class QueryCustomer : QueryBase
     {
+        private string? _email;
         [FromQuery(Name = "email")]
-        public string? Email { get; set; }
+        public string? Email
+        {
+            get => _email;
+            set => _email = value?.Trim().ToLowerInvariant();
+        }
 
         [FromQuery(Name = "isActive")]
         public bool? IsActive { get; set; }

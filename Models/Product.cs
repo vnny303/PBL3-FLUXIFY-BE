@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace FluxifyAPI.Models
@@ -19,35 +18,12 @@ namespace FluxifyAPI.Models
         public string? Description { get; set; }
 
         [Column("attributes")]
-        [JsonIgnore]
-        public string? AttributesJson { get; set; }
-
-        [NotMapped]
-        public Dictionary<string, List<string>>? Attributes
-        {
-            get
-            {
-                if (string.IsNullOrWhiteSpace(AttributesJson))
-                    return null;
-
-                try
-                {
-                    return JsonSerializer.Deserialize<Dictionary<string, List<string>>>(AttributesJson);
-                }
-                catch (JsonException)
-                {
-                    return null;
-                }
-            }
-            set
-            {
-                AttributesJson = value == null ? null : JsonSerializer.Serialize(value);
-            }
-        }
+        public string? Attributes { get; set; }
 
         [Column("img_urls")]
 
         public List<string> imgUrls { get; set; } = new List<string>();
+
         [JsonIgnore]
         public Category Category { get; set; } = null!;
         [JsonIgnore]

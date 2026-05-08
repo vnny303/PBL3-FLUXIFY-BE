@@ -7,11 +7,10 @@ namespace FluxifyAPI.Services.Interfaces
     public interface IOrderService
     {
         Task<ServiceResult<IEnumerable<OrderDto>>> GetOrdersAsync(Guid tenantId, Guid platformUserId, QueryOrder query);
-        Task<ServiceResult<OrderDto>> GetOrderAsync(Guid tenantId, Guid platformUserId, Guid id);
+        Task<ServiceResult<OrderDto>> GetOrderAsync(Guid tenantId, Guid platformUserId, Guid orderId);
         Task<ServiceResult<OrderDto>> CreateOrderAsync(Guid tenantId, Guid platformUserId, CreateOrderRequestDto createDto);
         Task<ServiceResult<object>> UpdateOrderStatusAsync(Guid tenantId, Guid platformUserId, Guid orderId, UpdateOrderStatusRequestDto updateDto);
-        Task<ServiceResult<object>> DeleteOrderAsync(Guid tenantId, Guid platformUserId, Guid id);
-
+        Task<ServiceResult<object>> DeleteOrderAsync(Guid tenantId, Guid platformUserId, Guid orderId);
         Task<ServiceResult<IEnumerable<OrderDto>>> GetMyOrdersAsync(Guid tenantId, Guid customerId, QueryOrder query);
         Task<ServiceResult<OrderDto>> GetMyOrderAsync(Guid tenantId, Guid customerId, Guid orderId);
         Task<ServiceResult<OrderDto>> CheckoutAsync(Guid tenantId, Guid customerId, CheckoutOrderRequestDto checkoutDto);

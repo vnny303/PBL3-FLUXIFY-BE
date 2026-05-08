@@ -22,7 +22,7 @@ namespace FluxifyAPI.Models
         [Column("payment_status")]
         public string? PaymentStatus { get; set; }
         [Column("total_amount")]
-        public decimal TotalAmount { get; set; }
+        public double TotalAmount { get; set; }
         [Column("created_at")]
         public DateTime? CreatedAt { get; set; }
         [JsonIgnore]

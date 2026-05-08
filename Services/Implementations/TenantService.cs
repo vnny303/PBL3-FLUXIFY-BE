@@ -5,16 +5,41 @@ using FluxifyAPI.Mapper;
 using FluxifyAPI.Services.Interfaces;
 using FluxifyAPI.Services.Common;
 using Microsoft.EntityFrameworkCore;
+using FluxifyAPI.Models;
 
 namespace FluxifyAPI.Services.Implementations
 {
     public class TenantService : ITenantService
     {
         private readonly ITenantRepository _tenantRepository;
+        private readonly ICategoryRepository _categoryRepository;
+        private readonly IProductRepository _productRepository;
+        private readonly IProductSkuRepository _productSkuRepository;
+        private readonly ICustomerRepository _customerRepository;
+        private readonly ICartRepository _cartRepository;
+        private readonly ICartItemRepository _cartItemRepository;
+        private readonly IOrderRepository _orderRepository;
+        private readonly IOrderItemRepository _orderItemRepository;
 
-        public TenantService(ITenantRepository tenantRepository)
+        public TenantService(ITenantRepository tenantRepository,
+                            ICategoryRepository categoryRepository,
+                            IProductRepository productRepository,
+                            IProductSkuRepository productSkuRepository,
+                            ICustomerRepository customerRepository,
+                            ICartRepository cartRepository,
+                            ICartItemRepository cartItemRepository,
+                            IOrderRepository orderRepository,
+                            IOrderItemRepository orderItemRepository)
         {
             _tenantRepository = tenantRepository;
+            _categoryRepository = categoryRepository;
+            _productRepository = productRepository;
+            _productSkuRepository = productSkuRepository;
+            _customerRepository = customerRepository;
+            _cartRepository = cartRepository;
+            _cartItemRepository = cartItemRepository;
+            _orderRepository = orderRepository;
+            _orderItemRepository = orderItemRepository;
         }
 
         private static string NormalizeSubdomain(string subdomain)
@@ -113,30 +138,21 @@ namespace FluxifyAPI.Services.Implementations
                 currentTheme.Components.ProductCard.Badge = themePatch.Components.ProductCard.Badge;
         }
 
-        public async Task<ServiceResult<IEnumerable<object>>> GetMyTenantsAsync(Guid ownerId, QueryTenant query)
+        public async Task<ServiceResult<IEnumerable<StorefrontTenantLookupDto>>> GetMyTenantsAsync(Guid ownerId, QueryTenant query)
         {
-            query ??= new QueryTenant();
             var tenantQuery = _tenantRepository.GetTenantsByPlatformUser(ownerId);
 
-            var searchTerm = query.SearchTerm;
-            if (!string.IsNullOrEmpty(searchTerm))
+            if (!string.IsNullOrEmpty(query.SearchTerm))
             {
-                if (Guid.TryParse(searchTerm, out var tenantId))
-                    tenantQuery = tenantQuery.Where(t => t.StoreName.Contains(searchTerm) || t.Subdomain.Contains(searchTerm) || t.Id == tenantId);
+                if (Guid.TryParse(query.SearchTerm, out var tenantId))
+                    tenantQuery = tenantQuery.Where(t => t.StoreName.Contains(query.SearchTerm) || t.Subdomain.Contains(query.SearchTerm) || t.Id == tenantId);
                 else
-                    tenantQuery = tenantQuery.Where(t => t.StoreName.Contains(searchTerm) || t.Subdomain.Contains(searchTerm));
+                    tenantQuery = tenantQuery.Where(t => t.StoreName.Contains(query.SearchTerm) || t.Subdomain.Contains(query.SearchTerm));
             }
-
             if (!string.IsNullOrWhiteSpace(query.StoreName))
-            {
-                var storeName = query.StoreName.Trim();
-                tenantQuery = tenantQuery.Where(t => t.StoreName.Contains(storeName));
-            }
+                tenantQuery = tenantQuery.Where(t => t.StoreName.Contains(query.StoreName));
             if (!string.IsNullOrWhiteSpace(query.Subdomain))
-            {
-                var subdomain = query.Subdomain.Trim();
-                tenantQuery = tenantQuery.Where(t => t.Subdomain.Contains(subdomain));
-            }
+                tenantQuery = tenantQuery.Where(t => t.Subdomain.Contains(query.Subdomain));
             if (query.IsActive.HasValue)
                 tenantQuery = tenantQuery.Where(t => t.IsActive == query.IsActive.Value);
             var sortBy = query.SortBy;
@@ -164,46 +180,38 @@ namespace FluxifyAPI.Services.Implementations
 
             var skipNumber = (query.Page - 1) * query.PageSize;
             var tenants = await tenantQuery.Skip(skipNumber).Take(query.PageSize).ToListAsync();
-            return ServiceResult<IEnumerable<object>>.Ok(tenants.Select(t => t.ToOverallTenantDto()));
+            return ServiceResult<IEnumerable<StorefrontTenantLookupDto>>.Ok(tenants.Select(t => t.ToStorefrontTenantLookupDto()));
         }
 
         public async Task<ServiceResult<TenantDto>> GetTenantAsync(Guid id, Guid ownerId)
         {
             if (!await _tenantRepository.TenantExists(id))
                 return ServiceResult<TenantDto>.Fail(404, "Tenant không tồn tại");
-
             if (!await _tenantRepository.IsTenantOwner(id, ownerId))
                 return ServiceResult<TenantDto>.Forbidden("Bạn không có quyền truy cập tenant này");
-
             var tenant = await _tenantRepository.GetTenantAsync(id);
             if (tenant == null)
                 return ServiceResult<TenantDto>.Fail(404, "Tenant không tồn tại");
-
             return ServiceResult<TenantDto>.Ok(tenant.ToTenantDto());
         }
 
         public async Task<ServiceResult<StorefrontTenantLookupDto>> GetTenantBySubdomainAsync(string subdomain)
         {
-            var normalizedSubdomain = NormalizeSubdomain(subdomain);
-            var tenant = await _tenantRepository.GetTenantBySubdomainAsync(normalizedSubdomain);
-            if (tenant == null)
+            var tenant = await _tenantRepository.GetTenantBySubdomainAsync(subdomain);
+            if (!await _tenantRepository.SubdomainExists(subdomain) || tenant == null)
                 return ServiceResult<StorefrontTenantLookupDto>.Fail(404, "Tenant không tồn tại");
-
-            // Keep storefront lookup opaque for disabled stores.
             if (tenant.IsActive != true)
                 return ServiceResult<StorefrontTenantLookupDto>.Fail(404, "Tenant không tồn tại");
-
             return ServiceResult<StorefrontTenantLookupDto>.Ok(tenant.ToStorefrontTenantLookupDto());
         }
 
         public async Task<ServiceResult<object>> CreateTenantAsync(Guid ownerId, CreateTenantRequestDto tenantDto)
         {
-            if (await _tenantRepository.SubdomainExists(NormalizeSubdomain(tenantDto.Subdomain)))
+            if (await _tenantRepository.SubdomainExists(tenantDto.Subdomain))
                 return ServiceResult<object>.Fail(409, "Subdomain đã tồn tại");
             var tenant = tenantDto.ToTenantFromCreateDto(ownerId);
             await _tenantRepository.CreateTenantAsync(tenant);
-
-            return ServiceResult<object>.Created(tenant.ToOverallTenantDto());
+            return ServiceResult<object>.Created(tenant.ToStorefrontTenantLookupDto());
         }
 
         public async Task<ServiceResult<object>> UpdateTenantAsync(Guid id, Guid ownerId, UpdateTenantRequestDto tenantDto)
@@ -212,15 +220,12 @@ namespace FluxifyAPI.Services.Implementations
                 return ServiceResult<object>.Fail(400,
                     "PUT /api/tenants/{id} không hỗ trợ contentConfig/themeConfig. Dùng PATCH /api/tenants/subdomain/{subdomain}/content hoặc /theme.");
 
-            if (!await _tenantRepository.TenantExists(id))
+            var tenant = await _tenantRepository.GetTenantAsync(id);
+            if (!await _tenantRepository.TenantExists(id) || tenant == null)
                 return ServiceResult<object>.Fail(404, "Tenant không tồn tại");
 
             if (!await _tenantRepository.IsTenantOwner(id, ownerId))
                 return ServiceResult<object>.Forbidden("Bạn không có quyền cập nhật tenant này");
-
-            var tenant = await _tenantRepository.GetTenantAsync(id);
-            if (tenant == null)
-                return ServiceResult<object>.Fail(404, "Tenant không tồn tại");
 
             if (!string.IsNullOrWhiteSpace(tenantDto.Subdomain))
             {
@@ -237,23 +242,19 @@ namespace FluxifyAPI.Services.Implementations
                 tenant.IsActive = tenantDto.IsActive;
 
             var updatedTenant = await _tenantRepository.UpdateTenantAsync(tenant);
-            return ServiceResult<object>.Ok(updatedTenant.ToOverallTenantDto());
+            return ServiceResult<object>.Ok(updatedTenant.ToStorefrontTenantLookupDto());
         }
 
         public async Task<ServiceResult<object>> UpdateTenantContentAsync(string subdomain, Guid ownerId, StorefrontContentConfigDto contentPatch)
         {
             if (string.IsNullOrWhiteSpace(subdomain))
                 return ServiceResult<object>.Fail(400, "Subdomain không hợp lệ");
-
             if (!HasAnyContentPatch(contentPatch))
                 return ServiceResult<object>.Fail(400, "Payload content không có trường hợp lệ để cập nhật");
-
-            var normalizedSubdomain = NormalizeSubdomain(subdomain);
-            var tenant = await _tenantRepository.GetTenantBySubdomainAsync(normalizedSubdomain);
-            if (tenant == null)
+            var tenant = await _tenantRepository.GetTenantBySubdomainAsync(subdomain);
+            if (!await _tenantRepository.SubdomainExists(subdomain) || tenant == null)
                 return ServiceResult<object>.Fail(404, "Tenant không tồn tại");
-
-            if (tenant.OwnerId != ownerId)
+            if (await _tenantRepository.IsTenantOwner(tenant.Id, ownerId))
                 return ServiceResult<object>.Forbidden("Bạn không có quyền cập nhật nội dung tenant này");
 
             var currentContent = tenant.ContentConfigJson.ToContentConfigDto();
@@ -269,16 +270,12 @@ namespace FluxifyAPI.Services.Implementations
         {
             if (string.IsNullOrWhiteSpace(subdomain))
                 return ServiceResult<object>.Fail(400, "Subdomain không hợp lệ");
-
             if (!HasAnyThemePatch(themePatch))
                 return ServiceResult<object>.Fail(400, "Payload theme không có trường hợp lệ để cập nhật");
-
-            var normalizedSubdomain = NormalizeSubdomain(subdomain);
-            var tenant = await _tenantRepository.GetTenantBySubdomainAsync(normalizedSubdomain);
-            if (tenant == null)
+            var tenant = await _tenantRepository.GetTenantBySubdomainAsync(subdomain);
+            if (!await _tenantRepository.SubdomainExists(subdomain) || tenant == null)
                 return ServiceResult<object>.Fail(404, "Tenant không tồn tại");
-
-            if (tenant.OwnerId != ownerId)
+            if (!await _tenantRepository.IsTenantOwner(tenant.Id, ownerId))
                 return ServiceResult<object>.Forbidden("Bạn không có quyền cập nhật giao diện tenant này");
 
             var currentTheme = tenant.ThemeConfigJson.ToThemeConfigDto();
@@ -294,16 +291,31 @@ namespace FluxifyAPI.Services.Implementations
         {
             if (!await _tenantRepository.TenantExists(id))
                 return ServiceResult<object>.Fail(404, "Tenant không tồn tại");
-
             if (!await _tenantRepository.IsTenantOwner(id, ownerId))
                 return ServiceResult<object>.Forbidden("Bạn không có quyền xóa tenant này");
-
+            // Xóa tất cả dữ liệu liên quan đến tenant trước khi xóa tenant
+            foreach (var order in _orderRepository.GetOrdersByTenantQuery(id))
+            {
+                foreach (var orderItem in order.OrderItems)
+                    await _orderItemRepository.DeleteOrderItemAsync(order.Id, orderItem.Id);
+                await _orderRepository.DeleteOrderAsync(id, order.Id);
+            }
+            foreach (var customer in _customerRepository.GetCustomersByTenantQuery(id))
+            {
+                foreach (var cartItem in await _cartItemRepository.GetCartItemsAsync(id, customer.Id) ?? Enumerable.Empty<CartItem>())
+                    await _cartItemRepository.DeleteCartItemAsync(id, cartItem.Id);
+                await _customerRepository.DeleteCustomerAsync(id, customer.Id);
+            }
+            foreach (var product in _productRepository.GetProductsByTenant(id))
+            {
+                foreach (var productSku in product.ProductSkus)
+                    await _productSkuRepository.DeleteProductSkuAsync(id, productSku.Id);
+                await _productRepository.DeleteProductAsync(id, product.Id);
+            }
+            foreach (var category in _categoryRepository.GetCategoriesByTenantQuery(id))
+                await _categoryRepository.DeleteCategoryAsync(id, category.Id);
             await _tenantRepository.DeleteTenantAsync(id);
             return ServiceResult<object>.Ok(new { message = "Xóa tenant thành công" });
         }
     }
 }
-
-
-
-

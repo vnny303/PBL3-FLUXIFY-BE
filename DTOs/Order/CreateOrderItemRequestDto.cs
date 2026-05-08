@@ -11,7 +11,7 @@ namespace FluxifyAPI.DTOs.Order
         public int Quantity { get; set; }
 
         [Range(0, double.MaxValue, ErrorMessage = "Đơn giá không được âm")]
-        public decimal UnitPrice { get; set; }
+        public double UnitPrice { get; set; }
     }
 }
 

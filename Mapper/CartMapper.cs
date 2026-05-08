@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using FluxifyAPI.DTOs.Cart;
 using FluxifyAPI.Models;
+using System.Text.Json;
 
 namespace FluxifyAPI.Mapper
 {
@@ -32,12 +33,18 @@ namespace FluxifyAPI.Mapper
         public static CartItemDto ToCartItemDto(this CartItem cartItem)
         {
             var productName = cartItem.ProductSku?.Product?.Name;
-            var skuAttributes = cartItem.ProductSku?.Attributes;
-            var skuDisplayName = string.IsNullOrWhiteSpace(productName)
-                ? null
-                : skuAttributes == null
-                    ? productName
-                    : $"{productName} - {skuAttributes}";
+            Dictionary<string, string>? skuAttributes = null;
+            if (!string.IsNullOrWhiteSpace(cartItem.ProductSku?.Attributes))
+            {
+                try
+                {
+                    skuAttributes = JsonSerializer.Deserialize<Dictionary<string, string>>(cartItem.ProductSku.Attributes);
+                }
+                catch (JsonException)
+                {
+                    skuAttributes = null;
+                }
+            }
 
             return new CartItemDto
             {
@@ -46,7 +53,6 @@ namespace FluxifyAPI.Mapper
                 ProductSkuId = cartItem.ProductSkuId,
                 ProductName = productName,
                 SkuAttributes = skuAttributes,
-                SkuDisplayName = skuDisplayName,
                 SkuImageUrl = cartItem.ProductSku?.imgUrl,
                 UnitPrice = cartItem.ProductSku?.Price,
                 Quantity = cartItem.Quantity

@@ -21,13 +21,6 @@ namespace FluxifyAPI.Repository.Implementations
                 .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == productId);
         }
 
-        public IQueryable<Product> GetProductByCategory(Guid tenantId, Guid categoryId)
-        {
-            return GetProductsByTenant(tenantId)
-                .Where(p => p.CategoryId == categoryId)
-                .AsNoTracking();
-        }
-
         public IQueryable<Product> GetProductsByTenant(Guid tenantId)
         {
             return _context.Products
@@ -62,7 +55,7 @@ namespace FluxifyAPI.Repository.Implementations
             return product;
         }
 
-        public async Task<bool> IsProductExists(Guid tenantId, Guid productId)
+        public async Task<bool> ProductExists(Guid tenantId, Guid productId)
         {
             return await _context.Products.AnyAsync(p => p.TenantId == tenantId && p.Id == productId);
         }

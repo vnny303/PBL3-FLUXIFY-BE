@@ -7,7 +7,6 @@ using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Repository.Implementations;
 using FluxifyAPI.Services.Interfaces;
 using FluxifyAPI.Services.Implementations;
-using FluxifyAPI.Services.Common;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using System.Text.Json;
@@ -50,7 +49,6 @@ builder.Services.AddScoped<ITenantService, TenantService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<ICartService, CartService>();
-builder.Services.AddScoped<ICartItemService, CartItemService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
@@ -128,4 +126,3 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
-

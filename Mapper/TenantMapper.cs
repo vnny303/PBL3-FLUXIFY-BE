@@ -59,20 +59,6 @@ namespace FluxifyAPI.Mapper
         {
             return SerializeOrDefault(config);
         }
-
-        public static object ToOverallTenantDto(this Tenant tenant)
-        {
-            return new
-            {
-                Id = tenant.Id,
-                OwnerId = tenant.OwnerId,
-                Subdomain = tenant.Subdomain,
-                StoreName = tenant.StoreName,
-                IsActive = tenant.IsActive,
-                ContentConfig = tenant.ContentConfigJson.ToContentConfigDto(),
-                ThemeConfig = tenant.ThemeConfigJson.ToThemeConfigDto()
-            };
-        }
         public static TenantDto ToTenantDto(this Tenant tenant)
         {
             return new TenantDto
@@ -133,17 +119,11 @@ namespace FluxifyAPI.Mapper
         public static Tenant ToTenantFromUpdateDto(this UpdateTenantRequestDto updateDto, Tenant existingTenant)
         {
             if (!string.IsNullOrWhiteSpace(updateDto.Subdomain))
-            {
                 existingTenant.Subdomain = updateDto.Subdomain.Trim().ToLowerInvariant();
-            }
             if (!string.IsNullOrWhiteSpace(updateDto.StoreName))
-            {
                 existingTenant.StoreName = updateDto.StoreName.Trim();
-            }
             if (updateDto.IsActive.HasValue)
-            {
                 existingTenant.IsActive = updateDto.IsActive;
-            }
             return existingTenant;
         }
     }

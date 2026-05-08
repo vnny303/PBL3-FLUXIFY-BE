@@ -28,7 +28,6 @@ namespace FluxifyAPI.Repository.Implementations
             var customerModel = await _context.Customers.FirstOrDefaultAsync(c => c.Id == customerId && c.TenantId == tenantId);
             if (customerModel == null)
                 return null;
-
             _context.Customers.Remove(customerModel);
             await _context.SaveChangesAsync();
             return customerModel;
@@ -38,20 +37,10 @@ namespace FluxifyAPI.Repository.Implementations
         {
             var customer = await _context.Customers
                             .Include(c => c.Cart)
-                            .Include(c => c.Orders)
+                            .Include(c => c.Orders) 
                             .FirstOrDefaultAsync(c => c.Id == customerId && c.TenantId == tenantId);
             return customer;
         }
-
-
-        // public async Task<Customer?> GetCustomerByCartAsync(Guid tenantId, Guid cartId)
-        // {
-        //     var customer = await _context.Customers
-        //                         .Include(c => c.Cart)
-        //                         .Include(c => c.Orders)
-        //                         .FirstOrDefaultAsync(c => c.Cart.Id == cartId && c.TenantId == tenantId);
-        //     return customer;
-        // }
 
         public async Task<Customer?> GetCustomerByEmailAsync(Guid tenantId, string email)
         {
@@ -83,9 +72,10 @@ namespace FluxifyAPI.Repository.Implementations
                                 .ToListAsync();
             return customers;
         }
-        public IQueryable<Customer> GetCustomer(Guid tenantId)
+        public IQueryable<Customer> GetCustomersByTenantQuery(Guid tenantId)
         {
             return _context.Customers
+                .Include(c => c.Orders)
                 .Where(c => c.TenantId == tenantId)
                 .AsNoTracking();
         }
@@ -93,6 +83,11 @@ namespace FluxifyAPI.Repository.Implementations
         public async Task<bool> CustomerExists(Guid tenantId, Guid customerId)
         {
             return await _context.Customers.AnyAsync(c => c.Id == customerId && c.TenantId == tenantId);
+        }
+
+        public async Task<bool> CustomerEmailExists(Guid tenantId, string email)
+        {
+            return await _context.Customers.AnyAsync(c => c.Email == email && c.TenantId == tenantId);
         }
     }
 }

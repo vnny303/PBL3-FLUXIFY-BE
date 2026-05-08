@@ -17,7 +17,7 @@ namespace FluxifyAPI.Models
         [Column("quantity")]
         public int Quantity { get; set; }
         [Column("unit_price")]
-        public decimal UnitPrice { get; set; }
+        public double UnitPrice { get; set; }
         [JsonIgnore]
         public Order Order { get; set; } = null!;
         [JsonIgnore]

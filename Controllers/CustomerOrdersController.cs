@@ -25,12 +25,10 @@ namespace FluxifyAPI.Controllers
             if (!Guid.TryParse(User.FindFirstValue("userId"), out var customerId) ||
                 !Guid.TryParse(User.FindFirstValue("tenantId"), out var tenantId))
                 return Unauthorized(new { message = "Token không hợp lệ" });
-
             query.CustomerId = customerId;
             var result = await _orderService.GetMyOrdersAsync(tenantId, customerId, query);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return StatusCode(result.StatusCode, result.Data);
         }
 
@@ -40,11 +38,9 @@ namespace FluxifyAPI.Controllers
             if (!Guid.TryParse(User.FindFirstValue("userId"), out var customerId) ||
                 !Guid.TryParse(User.FindFirstValue("tenantId"), out var tenantId))
                 return Unauthorized(new { message = "Token không hợp lệ" });
-
             var result = await _orderService.GetMyOrderAsync(tenantId, customerId, orderId);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return StatusCode(result.StatusCode, result.Data);
         }
 
@@ -54,14 +50,11 @@ namespace FluxifyAPI.Controllers
             if (!Guid.TryParse(User.FindFirstValue("userId"), out var customerId) ||
                 !Guid.TryParse(User.FindFirstValue("tenantId"), out var tenantId))
                 return Unauthorized(new { message = "Token không hợp lệ" });
-
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-
             var result = await _orderService.CheckoutAsync(tenantId, customerId, checkoutDto);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return StatusCode(result.StatusCode, result.Data);
         }
 
@@ -71,11 +64,9 @@ namespace FluxifyAPI.Controllers
             if (!Guid.TryParse(User.FindFirstValue("userId"), out var customerId) ||
                 !Guid.TryParse(User.FindFirstValue("tenantId"), out var tenantId))
                 return Unauthorized(new { message = "Token không hợp lệ" });
-
             var result = await _orderService.CancelMyOrderAsync(tenantId, customerId, orderId);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return StatusCode(result.StatusCode, result.Data);
         }
     }

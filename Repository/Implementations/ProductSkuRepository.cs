@@ -13,14 +13,12 @@ namespace FluxifyAPI.Repository.Implementations
         {
             _context = context;
         }
-
         public async Task<ProductSku?> GetProductSkusAsync(Guid tenantId, Guid productSkuId)
         {
             return await _context.ProductSkus
                 .Include(ps => ps.Product)
                 .FirstOrDefaultAsync(ps => ps.Id == productSkuId && ps.Product.TenantId == tenantId);
         }
-
         public async Task<IEnumerable<ProductSku>?> GetProductSkusByProductAsync(Guid tenantId, Guid productId)
         {
             return await _context.ProductSkus
@@ -28,14 +26,12 @@ namespace FluxifyAPI.Repository.Implementations
                 .Where(ps => ps.ProductId == productId && ps.Product.TenantId == tenantId)
                 .ToListAsync();
         }
-
         public async Task<ProductSku> CreateProductSkuAsync(ProductSku productSku)
         {
             await _context.ProductSkus.AddAsync(productSku);
             await _context.SaveChangesAsync();
             return productSku;
         }
-
         public async Task<ProductSku> UpdateProductSkuAsync(ProductSku productSku)
         {
             if (_context.Entry(productSku).State == EntityState.Detached)
@@ -43,7 +39,6 @@ namespace FluxifyAPI.Repository.Implementations
             await _context.SaveChangesAsync();
             return productSku;
         }
-
         public async Task<ProductSku?> DeleteProductSkuAsync(Guid tenantId, Guid productSkuId)
         {
             var sku = await _context.ProductSkus
@@ -60,7 +55,17 @@ namespace FluxifyAPI.Repository.Implementations
 
             return sku;
         }
-
+        //public async Task<ProductSku?> DecreaseProductSkuStockAsync(Guid tenantId, Guid productSkuId, int quantity)
+        //{
+        //    var sku = await GetProductSkusAsync(tenantId, productSkuId);
+        //    if (sku == null)
+        //        return null;
+        //    sku.Stock -= quantity;
+        //    if (sku.Stock < 0)
+        //        return null;
+        //    await _context.SaveChangesAsync();
+        //    return sku;
+        //}
         public async Task<bool> ProductSkuExists(Guid tenantId, Guid productSkuId)
         {
             return await _context.ProductSkus
@@ -69,5 +74,3 @@ namespace FluxifyAPI.Repository.Implementations
         }
     }
 }
-
-

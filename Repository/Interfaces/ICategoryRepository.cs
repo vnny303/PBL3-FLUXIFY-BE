@@ -9,11 +9,11 @@ namespace FluxifyAPI.Repository.Interfaces
     public interface ICategoryRepository
     {
         Task<Category?> GetCategoryAsync(Guid tenantId, Guid categoryId);
-        IQueryable<Category> GetCategoriesByTenant(Guid tenantId);
+        IQueryable<Category> GetCategoriesByTenantQuery(Guid tenantId);
         Task<Category> CreateCategoryAsync(Category category);
         Task<Category> UpdateCategoryAsync(Category category);
         Task<Category?> DeleteCategoryAsync(Guid tenantId, Guid categoryId);
-        Task<bool> IsCategoryNameExists(Guid tenantId, string name);
-        Task<bool> IsCategoryExists(Guid tenantId, Guid categoryId);
+        Task<bool> CategoryNameExists(Guid tenantId, string name);
+        Task<bool> CategoryExists(Guid tenantId, Guid categoryId);
     }
 }

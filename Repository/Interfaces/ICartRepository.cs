@@ -5,7 +5,8 @@ namespace FluxifyAPI.Repository.Interfaces
     public interface ICartRepository
     {
         Task<Cart?> GetCartAsync(Guid tenantId, Guid customerId);
-        Task<Cart> CreateCartAsync(Cart cart);
+        Task<Cart> CreateCartAsync(Guid tenantId, Guid customerId);
+        Task<Cart?> DeleteCartAsync(Guid tenantId, Guid customerId);
         Task<bool> CartExists(Guid tenantId, Guid customerId);
         Task<bool> CartContainsProductSku(Guid tenantId, Guid userId, Guid productSkuId);
     }

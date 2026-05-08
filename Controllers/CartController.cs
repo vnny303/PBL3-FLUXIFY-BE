@@ -11,48 +11,22 @@ namespace FluxifyAPI.Controllers
     [ApiController]
     public class CartController : ControllerBase
     {
-        private readonly ICartItemService _cartItemService;
+        private readonly ICartService _cartService;
 
-        public CartController(ICartItemService cartItemService)
+        public CartController(ICartService cartService)
         {
-            _cartItemService = cartItemService;
+            _cartService = cartService;
         }
         [HttpGet]
         public async Task<IActionResult> GetCarts()
         {
             if (!Guid.TryParse(User.FindFirstValue("userId"), out var userId) || !Guid.TryParse(User.FindFirstValue("tenantId"), out var tenantId))
                 return Unauthorized(new { message = "Token không hợp lệ" });
-            //var result = await _cartService.GetCartsAsync(tenantId, userId);
-            var result = await _cartItemService.GetCartItemsAsync(tenantId, userId);
+            var result = await _cartService.GetCartItemsAsync(tenantId, userId);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
             return StatusCode(result.StatusCode, result.Data);
         }
-
-        // [HttpPost]
-        // public async Task<IActionResult> CreateCart([FromBody] CreateCartRequestDto createDto)
-        // {
-        //     if (!Guid.TryParse(User.FindFirstValue("userId"), out var userId) || !Guid.TryParse(User.FindFirstValue("tenantId"), out var tenantId))
-        //         return Unauthorized(new { message = "Token không hợp lệ" });
-        //     if (!ModelState.IsValid)
-        //         return BadRequest(ModelState);
-        //     var result = await _cartService.CreateCartAsync(tenantId, userId, createDto);
-        //     if (!result.Success)
-        //         return StatusCode(result.StatusCode, new { message = result.Message });
-        //     return CreatedAtAction(nameof(GetCarts), new { tenantId, userId }, result.Data);
-        // }
-
-        // GET: Lấy toàn bộ giỏ hàng của customer
-        //[HttpGet("items")]
-        //public async Task<IActionResult> GetCartItems()
-        //{
-        //    if (!Guid.TryParse(User.FindFirstValue("userId"), out var userId) || !Guid.TryParse(User.FindFirstValue("tenantId"), out var tenantId))
-        //        return Unauthorized(new { message = "Token không hợp lệ" });
-        //    var result = await _cartItemService.GetCartItemsAsync(tenantId, userId);
-        //    if (!result.Success)
-        //        return StatusCode(result.StatusCode, new { message = result.Message });
-        //    return StatusCode(result.StatusCode, result.Data);
-        //}
 
         // POST: Thêm sản phẩm vào giỏ hàng (nếu đã có thì cộng dồn số lượng)
         [HttpPost("items")]
@@ -62,7 +36,7 @@ namespace FluxifyAPI.Controllers
                 return Unauthorized(new { message = "Token không hợp lệ" });
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-            var result = await _cartItemService.AddToCartAsync(tenantId, userId, createDto);
+            var result = await _cartService.AddToCartAsync(tenantId, userId, createDto);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
             return StatusCode(result.StatusCode, result.Data);
@@ -76,7 +50,7 @@ namespace FluxifyAPI.Controllers
                 return Unauthorized(new { message = "Token không hợp lệ" });
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-            var result = await _cartItemService.UpdateCartItemAsync(tenantId, userId, itemId, updateDto);
+            var result = await _cartService.UpdateCartItemAsync(tenantId, userId, itemId, updateDto);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
             return StatusCode(result.StatusCode, result.Data);
@@ -88,7 +62,7 @@ namespace FluxifyAPI.Controllers
         {
             if (!Guid.TryParse(User.FindFirstValue("userId"), out var userId) || !Guid.TryParse(User.FindFirstValue("tenantId"), out var tenantId))
                 return Unauthorized(new { message = "Token không hợp lệ" });
-            var result = await _cartItemService.RemoveCartItemAsync(tenantId, userId, itemId);
+            var result = await _cartService.RemoveCartItemAsync(tenantId, userId, itemId);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
             return StatusCode(result.StatusCode, result.Data);
@@ -100,11 +74,9 @@ namespace FluxifyAPI.Controllers
         {
             if (!Guid.TryParse(User.FindFirstValue("userId"), out var userId) || !Guid.TryParse(User.FindFirstValue("tenantId"), out var tenantId))
                 return Unauthorized(new { message = "Token không hợp lệ" });
-
-            var result = await _cartItemService.ClearCartAsync(tenantId, userId);
+            var result = await _cartService.ClearCartAsync(tenantId, userId);
             if (!result.Success)
                 return StatusCode(result.StatusCode, new { message = result.Message });
-
             return StatusCode(result.StatusCode, result.Data);
         }
     }

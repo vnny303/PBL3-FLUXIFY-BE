@@ -22,18 +22,34 @@ namespace FluxifyAPI.Repository.Implementations
                 .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.CustomerId == customerId);
         }
 
-        public async Task<Cart> CreateCartAsync(Cart cart)
+        public async Task<Cart> CreateCartAsync(Guid tenantId, Guid customerId)
         {
+            var cart = new Cart
+            {
+                TenantId = tenantId,
+                CustomerId = customerId
+            };
+
             await _context.Carts.AddAsync(cart);
             await _context.SaveChangesAsync();
 
             return cart;
         }
+        public async Task<Cart?> DeleteCartAsync(Guid tenantId, Guid customerId)
+        {
+            var cart = await _context.Carts
+                .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.CustomerId == customerId);
+            if (cart == null)
+                return null;
+            _context.Carts.Remove(cart);
+            await _context.SaveChangesAsync();
+            return cart;
+        }
         public async Task<bool> CartExists(Guid tenantId, Guid customerId)
         {
-            return await _context.Carts.AnyAsync(c => c.TenantId == tenantId && c.CustomerId == customerId);
+            return await _context.Carts
+            .AnyAsync(c => c.TenantId == tenantId && c.CustomerId == customerId);
         }
-
         public async Task<bool> CartContainsProductSku(Guid tenantId, Guid userId, Guid productSkuId)
         {
             return await _context.Carts

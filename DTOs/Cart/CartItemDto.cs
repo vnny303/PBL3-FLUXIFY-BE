@@ -18,7 +18,7 @@ namespace FluxifyAPI.DTOs.Cart
 
                 public string? SkuImageUrl { get; set; }
 
-                public decimal? UnitPrice { get; set; }
+                public double? UnitPrice { get; set; }
 
                 public int Quantity { get; set; }
         }

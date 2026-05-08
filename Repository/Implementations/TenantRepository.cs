@@ -26,7 +26,7 @@ namespace FluxifyAPI.Repository.Implementations
         public async Task<Tenant?> GetTenantBySubdomainAsync(string subdomain)
         {
             return await _context.Tenants
-                .FirstOrDefaultAsync(t => t.Subdomain == subdomain);
+                .FirstOrDefaultAsync(t => t.Subdomain == subdomain.Trim().ToLowerInvariant());
         }
 
         public IQueryable<Tenant> GetTenantsByPlatformUser(Guid platformUserId)
@@ -70,7 +70,7 @@ namespace FluxifyAPI.Repository.Implementations
 
         public async Task<bool> SubdomainExists(string subdomain)
         {
-            return await _context.Tenants.AnyAsync(t => t.Subdomain == subdomain);
+            return await _context.Tenants.AnyAsync(t => t.Subdomain == subdomain.Trim().ToLowerInvariant());
         }
 
         public async Task<bool> IsTenantOwner(Guid tenantId, Guid platformUserId)

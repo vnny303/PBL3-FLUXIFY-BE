@@ -19,7 +19,7 @@ namespace FluxifyAPI.DTOs.Order
 
         public string? PaymentStatus { get; set; }
 
-        public decimal TotalAmount { get; set; }
+        public double TotalAmount { get; set; }
 
         public DateTime? CreatedAt { get; set; }
 
