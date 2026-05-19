@@ -18,18 +18,23 @@ namespace FluxifyAPI.Mapper
             return (averageRating, reviewCount);
         }
 
+        // Shared options: case-insensitive so keys stored as camelCase
+        // (from Dictionary-based CreateDto) are matched to PascalCase DTO props.
+        private static readonly JsonSerializerOptions _caseInsensitiveOptions =
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
         // Parse sang typed DTO — dùng cho ProductDetailDto
         private static List<DetailSectionDto> ParseDetailSections(string? json)
         {
             if (string.IsNullOrWhiteSpace(json)) return new List<DetailSectionDto>();
-            try { return JsonSerializer.Deserialize<List<DetailSectionDto>>(json) ?? new List<DetailSectionDto>(); }
+            try { return JsonSerializer.Deserialize<List<DetailSectionDto>>(json, _caseInsensitiveOptions) ?? new List<DetailSectionDto>(); }
             catch (JsonException) { return new List<DetailSectionDto>(); }
         }
 
         private static List<SpecificationDto> ParseSpecifications(string? json)
         {
             if (string.IsNullOrWhiteSpace(json)) return new List<SpecificationDto>();
-            try { return JsonSerializer.Deserialize<List<SpecificationDto>>(json) ?? new List<SpecificationDto>(); }
+            try { return JsonSerializer.Deserialize<List<SpecificationDto>>(json, _caseInsensitiveOptions) ?? new List<SpecificationDto>(); }
             catch (JsonException) { return new List<SpecificationDto>(); }
         }
 

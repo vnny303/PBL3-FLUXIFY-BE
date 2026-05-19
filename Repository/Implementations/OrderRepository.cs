@@ -18,6 +18,8 @@ namespace FluxifyAPI.Repository.Implementations
         {
             return await _context.Orders
                 .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.ProductSku)
+                        .ThenInclude(sku => sku.Product)
                 .FirstOrDefaultAsync(o => o.TenantId == tenantId && o.Id == orderId);
         }
 
@@ -25,6 +27,8 @@ namespace FluxifyAPI.Repository.Implementations
         {
             return await _context.Orders
                 .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.ProductSku)
+                        .ThenInclude(sku => sku.Product)
                 .Where(o => o.TenantId == tenantId && o.CustomerId == customerId)
                 .OrderByDescending(o => o.CreatedAt)
                 .ToListAsync();
@@ -34,6 +38,8 @@ namespace FluxifyAPI.Repository.Implementations
         {
             return _context.Orders
                 .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.ProductSku)
+                        .ThenInclude(sku => sku.Product)
                 .Where(o => o.TenantId == tenantId)
                 .AsNoTracking();
         }
