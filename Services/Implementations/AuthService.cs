@@ -208,8 +208,11 @@ namespace FluxifyAPI.Services.Implementations
             if (!await _customerRepository.CustomerExists(tenant.Id, customerId) || customer == null)
                 return ServiceResult<object>.Fail(404, "Khách hàng không tồn tại trong hệ thống của cửa hàng này!");
 
-            if (string.IsNullOrWhiteSpace(request.OldPass) || !BCrypt.Net.BCrypt.Verify(request.OldPass, customer.PasswordHash))
-                return ServiceResult<object>.Fail(400, "Mật khẩu cũ không đúng!");
+            if (!string.IsNullOrWhiteSpace(request.Password))
+            {
+                if (string.IsNullOrWhiteSpace(request.OldPass) || !BCrypt.Net.BCrypt.Verify(request.OldPass, customer.PasswordHash))
+                    return ServiceResult<object>.Fail(400, "Mật khẩu cũ không đúng!");
+            }
 
             if (!string.IsNullOrWhiteSpace(request.Email))
             {

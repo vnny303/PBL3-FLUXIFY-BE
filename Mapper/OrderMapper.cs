@@ -34,6 +34,14 @@ namespace FluxifyAPI.Mapper
         }
         public static OrderItemDto ToOrderItemDto(this OrderItem orderItem)
         {
+            var productSku = orderItem.ProductSku;
+            var product = productSku?.Product;
+            var productName = product?.Name ?? "Product";
+            
+            var image = productSku != null && !string.IsNullOrWhiteSpace(productSku.imgUrl)
+                ? productSku.imgUrl
+                : product?.imgUrls?.FirstOrDefault();
+
             return new OrderItemDto
             {
                 Id = orderItem.Id,
@@ -41,7 +49,9 @@ namespace FluxifyAPI.Mapper
                 ProductSkuId = orderItem.ProductSkuId,
                 SelectedOptions = orderItem.SelectedOptions,
                 Quantity = orderItem.Quantity,
-                UnitPrice = orderItem.UnitPrice
+                UnitPrice = orderItem.UnitPrice,
+                ProductName = productName,
+                Image = image
             };
         }
 
