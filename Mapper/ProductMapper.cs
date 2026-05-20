@@ -55,7 +55,7 @@ namespace FluxifyAPI.Mapper
                 Name = product.Name,
                 Description = product.Description,
                 Attributes = (product.Attributes),
-                imgUrls = product.imgUrls,
+                ImgUrls = product.ImgUrls,
                 AverageRating = averageRating,
                 ReviewCount = reviewCount,
                 DetailSections = ParseSectionsRaw(product.DetailSections),
@@ -78,7 +78,7 @@ namespace FluxifyAPI.Mapper
                 Name = product.Name,
                 Description = product.Description,
                 Attributes = product.Attributes,
-                imgUrls = product.imgUrls,
+                ImgUrls = product.ImgUrls,
                 AverageRating = averageRating,
                 ReviewCount = reviewCount,
                 DetailSections = ParseDetailSections(product.DetailSections),
@@ -104,7 +104,7 @@ namespace FluxifyAPI.Mapper
                 Name = createDto.Name.Trim(),
                 Description = createDto.Description?.Trim(),
                 Attributes = resolvedAttributes ?? createDto.Attributes,
-                imgUrls = createDto.imgUrls ?? new List<string>(),
+                ImgUrls = createDto.ImgUrls ?? new List<string>(),
                 DetailSections = createDto.DetailSections == null ? null : JsonSerializer.Serialize(createDto.DetailSections),
                 Specifications = createDto.Specifications == null ? null : JsonSerializer.Serialize(createDto.Specifications),
                 ProductSkus = skuSource.Select(s => s.ToProductSkuFromCreateDto(productId)).ToList()
@@ -125,8 +125,8 @@ namespace FluxifyAPI.Mapper
             if (updateDto.Attributes != null)
                 existingProduct.Attributes = updateDto.Attributes;
 
-            if (updateDto.imgUrls != null)
-                existingProduct.imgUrls = updateDto.imgUrls;
+            if (updateDto.ImgUrls != null)
+                existingProduct.ImgUrls = updateDto.ImgUrls;
 
             if (updateDto.DetailSections != null)
                 existingProduct.DetailSections = JsonSerializer.Serialize(updateDto.DetailSections);

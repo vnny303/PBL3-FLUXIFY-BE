@@ -23,22 +23,18 @@ namespace FluxifyAPI.Models
         public string? PaymentStatus { get; set; }
         [Column("order_code")]
         public string? OrderCode { get; set; }
-        [Column("payment_reference")]
-        public string? PaymentReference { get; set; }
-        [Column("transfer_content")]
-        public string? TransferContent { get; set; }
         [Column("order_note")]
         public string? OrderNote { get; set; }
         [Column("shipping_method")]
         public string? ShippingMethod { get; set; }
         [Column("subtotal")]
-        public double Subtotal { get; set; }
+        public decimal Subtotal { get; set; }
         [Column("shipping_fee")]
-        public double ShippingFee { get; set; }
+        public decimal ShippingFee { get; set; }
         [Column("tax_amount")]
-        public double TaxAmount { get; set; }
+        public decimal TaxAmount { get; set; }
         [Column("total_amount")]
-        public double TotalAmount { get; set; }
+        public decimal TotalAmount { get; set; }
         [Column("paid_at")]
         public DateTime? PaidAt { get; set; }
         [Column("created_at")]

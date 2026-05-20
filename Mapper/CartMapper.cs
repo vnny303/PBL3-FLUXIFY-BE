@@ -34,11 +34,16 @@ namespace FluxifyAPI.Mapper
         {
             var productName = cartItem.ProductSku?.Product?.Name;
             var skuAttributes = cartItem.ProductSku?.Attributes;
+            var skuAttributesLabel = skuAttributes == null || skuAttributes.Count == 0
+                ? null
+                : string.Join(" / ", skuAttributes
+                    .OrderBy(entry => entry.Key, StringComparer.OrdinalIgnoreCase)
+                    .Select(entry => $"{entry.Key}: {entry.Value}"));
             var skuDisplayName = string.IsNullOrWhiteSpace(productName)
                 ? null
-                : skuAttributes == null
+                : string.IsNullOrWhiteSpace(skuAttributesLabel)
                     ? productName
-                    : $"{productName} - {skuAttributes}";
+                    : $"{productName} - {skuAttributesLabel}";
 
             return new CartItemDto
             {
@@ -48,7 +53,7 @@ namespace FluxifyAPI.Mapper
                 ProductName = productName,
                 SkuAttributes = skuAttributes,
                 SkuDisplayName = skuDisplayName,
-                SkuImageUrl = cartItem.ProductSku?.imgUrl,
+                SkuImageUrl = cartItem.ProductSku?.ImgUrl,
                 UnitPrice = cartItem.ProductSku?.Price,
                 Quantity = cartItem.Quantity
             };

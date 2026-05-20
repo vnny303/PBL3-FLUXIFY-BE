@@ -31,7 +31,7 @@ namespace FluxifyAPI.Mapper
             {
                 Id = Guid.NewGuid(),
                 Fullname = registerDto.FullName,
-                Email = registerDto.Email,
+                Email = registerDto.Email.Trim().ToLowerInvariant(),
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password),
                 Role = "merchant",
                 IsActive = true,

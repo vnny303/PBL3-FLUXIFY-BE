@@ -1,78 +1,123 @@
 using FluxifyAPI.DTOs.CustomerAddress;
+using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace FluxifyAPI.Controllers
 {
-    [Route("api/customers/{customerId}/addresses")]
+    /// <summary>
+    /// Merchant/admin quản lý địa chỉ khách hàng theo tenant rõ ràng.
+    /// Customer tự quản lý địa chỉ phải dùng /api/customer/addresses.
+    /// </summary>
+    [Authorize(Roles = "admin,merchant")]
+    [Route("api/tenants/{tenantId}/customers/{customerId}/addresses")]
     [ApiController]
     public class CustomerAddressesController : ControllerBase
     {
         private readonly ICustomerAddressService _addressService;
+        private readonly ITenantRepository _tenantRepository;
 
-        public CustomerAddressesController(ICustomerAddressService addressService)
+        public CustomerAddressesController(ICustomerAddressService addressService, ITenantRepository tenantRepository)
         {
             _addressService = addressService;
+            _tenantRepository = tenantRepository;
         }
 
-        private Guid GetTenantId()
+        private async Task<IActionResult?> ValidateTenantAccessAsync(Guid tenantId)
         {
-            if (HttpContext.Items["TenantId"] is Guid tenantId)
-                return tenantId;
-            throw new Exception("TenantId is not available.");
+            var role = User.FindFirstValue("role");
+            if (string.Equals(role, "admin", StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            if (!Guid.TryParse(User.FindFirstValue("userId"), out var platformUserId))
+                return Unauthorized(new { message = "Token không hợp lệ hoặc thiếu userId claim" });
+
+            if (!await _tenantRepository.IsTenantOwner(tenantId, platformUserId))
+                return Forbid();
+
+            return null;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAddresses(Guid customerId)
+        public async Task<IActionResult> GetAddresses(Guid tenantId, Guid customerId)
         {
-            var tenantId = GetTenantId();
+            var accessError = await ValidateTenantAccessAsync(tenantId);
+            if (accessError != null) return accessError;
+
             var addresses = await _addressService.GetAddressesByCustomerIdAsync(tenantId, customerId);
             return Ok(addresses);
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetAddressById(Guid id)
+        public async Task<IActionResult> GetAddressById(Guid tenantId, Guid customerId, Guid id)
         {
-            var tenantId = GetTenantId();
+            var accessError = await ValidateTenantAccessAsync(tenantId);
+            if (accessError != null) return accessError;
+
             var address = await _addressService.GetAddressByIdAsync(tenantId, id);
-            if (address == null) return NotFound("Address not found.");
+            if (address == null || address.CustomerId != customerId)
+                return NotFound(new { message = "Địa chỉ không tồn tại hoặc không thuộc khách hàng này" });
+
             return Ok(address);
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateAddress(Guid customerId, [FromBody] CreateCustomerAddressDto dto)
+        public async Task<IActionResult> CreateAddress(Guid tenantId, Guid customerId, [FromBody] CreateCustomerAddressDto dto)
         {
-            if (customerId != dto.CustomerId) return BadRequest("Customer ID mismatch.");
-            var tenantId = GetTenantId();
+            var accessError = await ValidateTenantAccessAsync(tenantId);
+            if (accessError != null) return accessError;
+
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            dto.CustomerId = customerId;
             var address = await _addressService.CreateAddressAsync(tenantId, dto);
-            return CreatedAtAction(nameof(GetAddressById), new { customerId = customerId, id = address.Id }, address);
+            return CreatedAtAction(nameof(GetAddressById), new { tenantId, customerId, id = address.Id }, address);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateAddress(Guid customerId, Guid id, [FromBody] UpdateCustomerAddressDto dto)
+        public async Task<IActionResult> UpdateAddress(Guid tenantId, Guid customerId, Guid id, [FromBody] UpdateCustomerAddressDto dto)
         {
-            var tenantId = GetTenantId();
+            var accessError = await ValidateTenantAccessAsync(tenantId);
+            if (accessError != null) return accessError;
+
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var existing = await _addressService.GetAddressByIdAsync(tenantId, id);
+            if (existing == null || existing.CustomerId != customerId)
+                return NotFound(new { message = "Địa chỉ không tồn tại hoặc không thuộc khách hàng này" });
+
             var address = await _addressService.UpdateAddressAsync(tenantId, id, dto);
-            if (address == null) return NotFound("Address not found.");
             return Ok(address);
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteAddress(Guid customerId, Guid id)
+        public async Task<IActionResult> DeleteAddress(Guid tenantId, Guid customerId, Guid id)
         {
-            var tenantId = GetTenantId();
-            var result = await _addressService.DeleteAddressAsync(tenantId, id);
-            if (!result) return NotFound("Address not found.");
+            var accessError = await ValidateTenantAccessAsync(tenantId);
+            if (accessError != null) return accessError;
+
+            var existing = await _addressService.GetAddressByIdAsync(tenantId, id);
+            if (existing == null || existing.CustomerId != customerId)
+                return NotFound(new { message = "Địa chỉ không tồn tại hoặc không thuộc khách hàng này" });
+
+            await _addressService.DeleteAddressAsync(tenantId, id);
             return NoContent();
         }
 
         [HttpPatch("{id}/default")]
-        public async Task<IActionResult> SetDefault(Guid customerId, Guid id)
+        public async Task<IActionResult> SetDefault(Guid tenantId, Guid customerId, Guid id)
         {
-            var tenantId = GetTenantId();
+            var accessError = await ValidateTenantAccessAsync(tenantId);
+            if (accessError != null) return accessError;
+
             var result = await _addressService.SetDefaultAddressAsync(tenantId, customerId, id);
-            if (!result) return NotFound("Address not found.");
+            if (!result)
+                return NotFound(new { message = "Địa chỉ không tồn tại hoặc không thuộc khách hàng này" });
+
             return NoContent();
         }
     }

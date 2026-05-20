@@ -27,7 +27,6 @@ public partial class AppDbContext : DbContext
     public DbSet<Product> Products { get; set; }
     public DbSet<ProductSku> ProductSkus { get; set; }
     public DbSet<Review> Reviews { get; set; }
-    public DbSet<TenantPaymentSetting> TenantPaymentSettings { get; set; }
     public DbSet<Tenant> Tenants { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -79,8 +78,31 @@ public partial class AppDbContext : DbContext
             .HasIndex(r => new { r.TenantId, r.ProductSkuId, r.CustomerId })
             .IsUnique();
 
-        modelBuilder.Entity<TenantPaymentSetting>()
-            .HasIndex(tps => new { tps.TenantId, tps.IsActive });
+        modelBuilder.Entity<Order>()
+            .HasIndex(o => new { o.TenantId, o.CreatedAt });
+
+        modelBuilder.Entity<Order>()
+            .HasIndex(o => new { o.TenantId, o.CustomerId, o.CreatedAt });
+
+        modelBuilder.Entity<Order>()
+            .HasIndex(o => new { o.TenantId, o.Status });
+
+        modelBuilder.Entity<Order>()
+            .HasIndex(o => new { o.TenantId, o.PaymentStatus });
+
+        modelBuilder.Entity<Product>()
+            .HasIndex(p => new { p.TenantId, p.CategoryId });
+
+        modelBuilder.Entity<ProductSku>()
+            .HasIndex(ps => ps.ProductId);
+
+        modelBuilder.Entity<Cart>()
+            .HasIndex(c => new { c.TenantId, c.CustomerId })
+            .IsUnique();
+
+        modelBuilder.Entity<CartItem>()
+            .HasIndex(ci => new { ci.CartId, ci.ProductSkuId })
+            .IsUnique();
 
         // decimal
         modelBuilder.Entity<OrderItem>()
@@ -104,7 +126,32 @@ public partial class AppDbContext : DbContext
             .HasColumnType("decimal(18,2)");
 
         modelBuilder.Entity<Order>()
-            .ToTable(t => t.HasCheckConstraint("CK_orders_shipping_method", "[shipping_method] IS NULL OR [shipping_method] IN ('standard', 'express')"));
+            .ToTable(t =>
+            {
+                t.HasCheckConstraint("CK_orders_shipping_method", "[shipping_method] IS NULL OR [shipping_method] IN ('standard', 'express')");
+                t.HasCheckConstraint("CK_orders_payment_method_cod_only", "[payment_method] IS NULL OR [payment_method] = 'COD'");
+                t.HasCheckConstraint("CK_orders_amount_non_negative", "[subtotal] >= 0 AND [shipping_fee] >= 0 AND [tax_amount] >= 0 AND [total_amount] >= 0");
+            });
+
+        modelBuilder.Entity<OrderItem>()
+            .ToTable(t =>
+            {
+                t.HasCheckConstraint("CK_order_items_quantity_positive", "[quantity] > 0");
+                t.HasCheckConstraint("CK_order_items_unit_price_non_negative", "[unit_price] >= 0");
+            });
+
+        modelBuilder.Entity<CartItem>()
+            .ToTable(t => t.HasCheckConstraint("CK_cart_items_quantity_positive", "[quantity] > 0"));
+
+        modelBuilder.Entity<ProductSku>()
+            .ToTable(t =>
+            {
+                t.HasCheckConstraint("CK_product_skus_stock_non_negative", "[stock] >= 0");
+                t.HasCheckConstraint("CK_product_skus_price_non_negative", "[price] >= 0");
+            });
+
+        modelBuilder.Entity<Review>()
+            .ToTable(t => t.HasCheckConstraint("CK_reviews_rating_range", "[rating] BETWEEN 1 AND 5"));
 
         modelBuilder.Entity<ProductSku>()
             .Property(p => p.Price)
@@ -132,12 +179,6 @@ public partial class AppDbContext : DbContext
             .HasOne(o => o.Address)
             .WithMany(ca => ca.Orders)
             .HasForeignKey(o => o.AddressId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        modelBuilder.Entity<TenantPaymentSetting>()
-            .HasOne(tps => tps.Tenant)
-            .WithMany(t => t.PaymentSettings)
-            .HasForeignKey(tps => tps.TenantId)
             .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<Customer>()

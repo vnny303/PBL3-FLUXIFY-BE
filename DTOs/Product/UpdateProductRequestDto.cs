@@ -10,7 +10,7 @@ namespace FluxifyAPI.DTOs.Product
                 public Guid? CategoryId { get; set; }
                 public string? Description { get; set; }
                 public Dictionary<string, List<string>>? Attributes { get; set; }
-                public List<string>? imgUrls { get; set; }
+                public List<string>? ImgUrls { get; set; }
                 public List<DetailSectionDto>? DetailSections { get; set; }
                 public List<SpecificationDto>? Specifications { get; set; }
                 public List<CreateProductSkuRequestDto>? Skus { get; set; }

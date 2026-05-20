@@ -23,16 +23,16 @@ namespace FluxifyAPI.Helpers
             get => _quantityTo;
             set => _quantityTo = value <= 0 ? null : value;
         }
-        private double? _unitPriceFrom;
+        private decimal? _unitPriceFrom;
         [FromQuery(Name = "unitPriceFrom")]
-        public double? UnitPriceFrom
+        public decimal? UnitPriceFrom
         {
             get => _unitPriceFrom;
             set => _unitPriceFrom = value <= 0 ? null : value;
         }
-        private double? _unitPriceTo;
+        private decimal? _unitPriceTo;
         [FromQuery(Name = "unitPriceTo")]
-        public double? UnitPriceTo
+        public decimal? UnitPriceTo
         {
             get => _unitPriceTo;
             set => _unitPriceTo = value <= 0 ? null : value;

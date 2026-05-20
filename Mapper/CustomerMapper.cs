@@ -26,7 +26,7 @@ namespace FluxifyAPI.Mapper
             {
                 Id = Guid.NewGuid(),
                 TenantId = tenantId,
-                Email = createDto.Email,
+                Email = createDto.Email.Trim().ToLowerInvariant(),
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(createDto.Password),
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
@@ -39,7 +39,7 @@ namespace FluxifyAPI.Mapper
             {
                 Id = Guid.NewGuid(),
                 TenantId = tenantId,
-                Email = registerDto.Email,
+                Email = registerDto.Email.Trim().ToLowerInvariant(),
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password),
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
@@ -50,7 +50,7 @@ namespace FluxifyAPI.Mapper
         {
             if (!string.IsNullOrWhiteSpace(updateDto.Email))
             {
-                existingCustomer.Email = updateDto.Email.Trim();
+                existingCustomer.Email = updateDto.Email.Trim().ToLowerInvariant();
             }
             if (!string.IsNullOrWhiteSpace(updateDto.Password))
             {

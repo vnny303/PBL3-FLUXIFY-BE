@@ -46,7 +46,7 @@ namespace FluxifyAPI.Mapper
                 Price = productSku.Price,
                 Stock = productSku.Stock,
                 Attributes = productSku.Attributes,
-                imgUrl = productSku.imgUrl
+                ImgUrl = productSku.ImgUrl
             };
         }
 
@@ -59,7 +59,7 @@ namespace FluxifyAPI.Mapper
                 Price = createDto.Price,
                 Stock = createDto.Stock,
                 Attributes = createDto.Attributes,
-                imgUrl = createDto.imgUrl ?? ""
+                ImgUrl = createDto.ImgUrl ?? ""
             };
         }
 
@@ -72,8 +72,8 @@ namespace FluxifyAPI.Mapper
 
             if (updateDto.Attributes != null)
                 existingProductSku.Attributes = updateDto.Attributes;
-            if (updateDto.imgUrl != null)
-                existingProductSku.imgUrl = updateDto.imgUrl;
+            if (updateDto.ImgUrl != null)
+                existingProductSku.ImgUrl = updateDto.ImgUrl;
             return existingProductSku;
         }
     }

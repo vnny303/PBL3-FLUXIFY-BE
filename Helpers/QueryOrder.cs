@@ -5,7 +5,7 @@ namespace FluxifyAPI.Helpers
     public class QueryOrder : QueryBase
     {
         [FromQuery(Name = "customerId")]
-        public Guid? CustomerId { get; set; } // TODO: đổi thành Name, Phone, Email,...
+        public Guid? CustomerId { get; set; }
         private string? _status;
         [FromQuery(Name = "status")]
         public string? Status
@@ -27,16 +27,16 @@ namespace FluxifyAPI.Helpers
             get => _paymentStatus;
             set => _paymentStatus = value?.Trim().ToLowerInvariant();
         }
-        private double? _totalFrom;
+        private decimal? _totalFrom;
         [FromQuery(Name = "totalFrom")]
-        public double? TotalFrom
+        public decimal? TotalFrom
         {
             get => _totalFrom;
             set => _totalFrom = value <= 0 ? null : value;
         }
-        private double? _totalTo;
+        private decimal? _totalTo;
         [FromQuery(Name = "totalTo")]
-        public double? TotalTo
+        public decimal? TotalTo
         {
             get => _totalTo;
             set => _totalTo = value <= 0 ? null : value;

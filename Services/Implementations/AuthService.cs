@@ -1,9 +1,11 @@
+using FluxifyAPI.Data;
 using FluxifyAPI.DTOs;
 using FluxifyAPI.DTOs.Customer;
 using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Mapper;
 using FluxifyAPI.Services.Interfaces;
 using FluxifyAPI.Services.Common;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -14,6 +16,7 @@ namespace FluxifyAPI.Services.Implementations
 {
     public class AuthService : IAuthService
     {
+        private readonly AppDbContext _context;
         private readonly IPlatformUserRepository _platformUserRepository;
         private readonly ITenantRepository _tenantRepository;
         private readonly ICustomerRepository _customerRepository;
@@ -21,12 +24,14 @@ namespace FluxifyAPI.Services.Implementations
         private readonly IConfiguration _config;
 
         public AuthService(
+            AppDbContext context,
             IPlatformUserRepository platformUserRepository,
             ITenantRepository tenantRepository,
             ICustomerRepository customerRepository,
             ICartRepository cartRepository,
             IConfiguration config)
         {
+            _context = context;
             _platformUserRepository = platformUserRepository;
             _tenantRepository = tenantRepository;
             _customerRepository = customerRepository;
@@ -53,6 +58,8 @@ namespace FluxifyAPI.Services.Implementations
 
         public async Task<ServiceResult<object>> RegisterMerchantAsync(RegisterMerchantRequest request)
         {
+            request.Email = request.Email.Trim().ToLowerInvariant();
+            request.Subdomain = request.Subdomain.Trim().ToLowerInvariant();
 
             if (await _platformUserRepository.PlatformUserEmailExists(request.Email))
                 return ServiceResult<object>.Fail(400, "Email đã tồn tại!");
@@ -60,11 +67,15 @@ namespace FluxifyAPI.Services.Implementations
             if (await _tenantRepository.SubdomainExists(request.Subdomain))
                 return ServiceResult<object>.Fail(400, "Tên cửa hàng đã có người dùng!");
 
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+
             var user = request.ToPlatformUserFromRegisterDto();
             await _platformUserRepository.CreatePlatformUserAsync(user);
 
             var tenant = request.ToTenantFromRegisterDto(user.Id);
             await _tenantRepository.CreateTenantAsync(tenant);
+
+            await transaction.CommitAsync();
 
             var token = GenerateToken([
                 new Claim("userId", user.Id.ToString()),
@@ -86,6 +97,7 @@ namespace FluxifyAPI.Services.Implementations
 
         public async Task<ServiceResult<object>> LoginMerchantAsync(LoginRequest request)
         {
+            request.Email = request.Email.Trim().ToLowerInvariant();
             var user = await _platformUserRepository.GetMerchantByEmailAsync(request.Email);
 
             if (!await _platformUserRepository.PlatformUserEmailExists(request.Email) || user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user!.PasswordHash))
@@ -111,22 +123,28 @@ namespace FluxifyAPI.Services.Implementations
                 {
                     tenantId = t.Id,
                     subdomain = t.Subdomain,
-                    storename = t.StoreName
+                    storeName = t.StoreName
                 })
             });
         }
 
         public async Task<ServiceResult<object>> RegisterCustomerAsync(string subdomain, RegisterCustomerRequest request)
         {
+            subdomain = subdomain.Trim().ToLowerInvariant();
+            request.Email = request.Email.Trim().ToLowerInvariant();
             var tenant = await _tenantRepository.GetTenantBySubdomainAsync(subdomain);
             if (!await _tenantRepository.SubdomainExists(subdomain) || tenant == null)
                 return ServiceResult<object>.Fail(400, "Cửa hàng không tồn tại!");
             if (await _customerRepository.CustomerEmailExists(tenant.Id, request.Email))
                 return ServiceResult<object>.Fail(400, "Email đã được đăng ký!");
 
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+
             var customer = request.ToCustomerFromRegisterDto(tenant.Id);
             await _customerRepository.CreateCustomerAsync(customer);
             await _cartRepository.CreateCartAsync(tenant.Id, customer.Id);
+
+            await transaction.CommitAsync();
 
             var token = GenerateToken([
                 new Claim("userId", customer.Id.ToString()),
@@ -149,6 +167,8 @@ namespace FluxifyAPI.Services.Implementations
 
         public async Task<ServiceResult<object>> LoginCustomerAsync(string subdomain, LoginRequest request)
         {
+            subdomain = subdomain.Trim().ToLowerInvariant();
+            request.Email = request.Email.Trim().ToLowerInvariant();
             var tenant = await _tenantRepository.GetTenantBySubdomainAsync(subdomain);
             if (!await _tenantRepository.SubdomainExists(subdomain) || tenant == null)
                 return ServiceResult<object>.Fail(400, "Cửa hàng không tồn tại!");

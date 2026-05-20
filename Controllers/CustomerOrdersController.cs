@@ -60,14 +60,8 @@ namespace FluxifyAPI.Controllers
             return StatusCode(result.StatusCode, new
             {
                 orderCode = data.OrderCode,
-                paymentReference = data.PaymentReference,
                 paymentMethod = data.PaymentMethod,
                 paymentStatus = data.PaymentStatus,
-                bankName = data.BankName,
-                bankCode = data.BankCode,
-                bankAccountNumber = data.BankAccountNumber,
-                bankAccountName = data.BankAccountName,
-                transferContent = data.TransferContent,
                 totalAmount = data.TotalAmount,
                 paidAt = data.PaidAt,
                 shippingMethod = data.ShippingMethod,

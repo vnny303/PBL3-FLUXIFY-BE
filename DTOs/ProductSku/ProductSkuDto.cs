@@ -8,13 +8,13 @@ namespace FluxifyAPI.DTOs.ProductSku
 
         public Guid ProductId { get; set; }
 
-        public double Price { get; set; }
+        public decimal Price { get; set; }
 
         public int Stock { get; set; }
 
         public Dictionary<string, string>? Attributes { get; set; }
 
-        public string? imgUrl { get; set; }
+        public string? ImgUrl { get; set; }
     }
 }
 

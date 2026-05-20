@@ -8,6 +8,7 @@ namespace FluxifyAPI.DTOs.Order
         [Required(ErrorMessage = "Địa chỉ không được để trống")]
         public Guid AddressId { get; set; }
 
+        [RegularExpression("^COD$", ErrorMessage = "paymentMethod chỉ nhận COD")]
         public string? PaymentMethod { get; set; }
 
         public string? OrderNote { get; set; }

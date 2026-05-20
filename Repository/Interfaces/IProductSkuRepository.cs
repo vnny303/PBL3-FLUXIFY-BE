@@ -9,7 +9,6 @@ namespace FluxifyAPI.Repository.Interfaces
         Task<ProductSku> CreateProductSkuAsync(ProductSku productSku);
         Task<ProductSku> UpdateProductSkuAsync(ProductSku productSku);
         Task<ProductSku?> DeleteProductSkuAsync(Guid tenantId, Guid productSkuId);
-        //Task<ProductSku?> DecreaseProductSkuStockAsync(Guid tenantId, Guid productSkuId, int quantity);
         Task<bool> ProductSkuExists(Guid tenantId, Guid productSkuId);
 
 

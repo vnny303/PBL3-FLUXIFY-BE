@@ -297,7 +297,7 @@ namespace FluxifyAPI.Services.Implementations
             foreach (var order in _orderRepository.GetOrdersByTenantQuery(id))
             {
                 foreach (var orderItem in order.OrderItems)
-                    await _orderItemRepository.DeleteOrderItemAsync(order.Id, orderItem.Id);
+                    await _orderItemRepository.DeleteOrderItemAsync(id, orderItem.Id);
                 await _orderRepository.DeleteOrderAsync(id, order.Id);
             }
             foreach (var customer in _customerRepository.GetCustomersByTenantQuery(id))

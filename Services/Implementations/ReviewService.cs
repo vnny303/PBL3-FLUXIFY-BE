@@ -1,3 +1,4 @@
+using FluxifyAPI.Data;
 using FluxifyAPI.DTOs.Review;
 using FluxifyAPI.Helpers;
 using FluxifyAPI.Mapper;
@@ -10,15 +11,18 @@ namespace FluxifyAPI.Services.Implementations
 {
     public class ReviewService : IReviewService
     {
+        private readonly AppDbContext _context;
         private readonly IReviewRepository _reviewRepository;
         private readonly IProductSkuRepository _productSkuRepository;
         private readonly ICustomerRepository _customerRepository;
 
         public ReviewService(
+            AppDbContext context,
             IReviewRepository reviewRepository,
             IProductSkuRepository productSkuRepository,
             ICustomerRepository customerRepository)
         {
+            _context = context;
             _reviewRepository = reviewRepository;
             _productSkuRepository = productSkuRepository;
             _customerRepository = customerRepository;
@@ -126,6 +130,16 @@ namespace FluxifyAPI.Services.Implementations
 
             if (string.IsNullOrWhiteSpace(createDto.Comment))
                 return ServiceResult<ReviewDto>.Fail(400, "Comment không được để trống");
+
+            var hasVerifiedPurchase = await _context.Orders
+                .AsNoTracking()
+                .AnyAsync(order => order.TenantId == tenantId
+                    && order.CustomerId == customerId
+                    && (order.Status == "Delivered" || order.Status == "Completed")
+                    && order.OrderItems.Any(item => item.ProductSkuId == createDto.ProductSkuId));
+
+            if (!hasVerifiedPurchase)
+                return ServiceResult<ReviewDto>.Fail(403, "Bạn chỉ có thể đánh giá SKU đã mua và đơn hàng đã giao/hoàn tất");
 
             var existingReview = await _reviewRepository.GetCustomerProductSkuReviewAsync(tenantId, createDto.ProductSkuId, customerId);
             if (existingReview != null)

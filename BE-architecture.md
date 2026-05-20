@@ -13,7 +13,6 @@
 │   ├── 📄 OrdersController.cs
 │   ├── 📄 ProductReviewsController.cs
 │   ├── 📄 ProductsController.cs
-│   ├── 📄 TenantPaymentSettingsController.cs
 │   └── 📄 TenantsController.cs
 ├── 📁 DTOs
 │   ├── 📁 Analytics
@@ -78,10 +77,6 @@
 │   │   ├── 📄 StorefrontThemeConfigDto.cs
 │   │   ├── 📄 TenantDto.cs
 │   │   └── 📄 UpdateTenantRequestDto.cs
-│   └── 📁 TenantPaymentSetting
-│       ├── 📄 CreateTenantPaymentSettingDto.cs
-│       ├── 📄 TenantPaymentSettingDto.cs
-│       └── 📄 UpdateTenantPaymentSettingDto.cs
 ├── 📁 Data
 │   └── 📄 AppDbContext.cs
 ├── 📁 Helpers
@@ -107,7 +102,6 @@
 │   ├── 📄 ProductSkuMapper.cs
 │   ├── 📄 ReviewMapper.cs
 │   ├── 📄 TenantMapper.cs
-│   └── 📄 TenantPaymentSettingMapper.cs
 ├── 📁 Migrations
 ├── 📁 Models
 │   ├── 📄 Cart.cs
@@ -122,7 +116,6 @@
 │   ├── 📄 ProductSku.cs
 │   ├── 📄 Review.cs
 │   ├── 📄 Tenant.cs
-│   └── 📄 TenantPaymentSetting.cs
 ├── 📁 Properties
 ├── 📁 Repository
 │   ├── 📁 Implementations
@@ -137,7 +130,6 @@
 │   │   ├── 📄 ProductRepository.cs
 │   │   ├── 📄 ProductSkuRepository.cs
 │   │   ├── 📄 ReviewRepository.cs
-│   │   ├── 📄 TenantPaymentSettingRepository.cs
 │   │   └── 📄 TenantRepository.cs
 │   └── 📁 Interfaces
 │       ├── 📄 ICartItemRepository.cs
@@ -151,7 +143,6 @@
 │       ├── 📄 IProductRepository.cs
 │       ├── 📄 IProductSkuRepository.cs
 │       ├── 📄 IReviewRepository.cs
-│       ├── 📄 ITenantPaymentSettingRepository.cs
 │       └── 📄 ITenantRepository.cs
 ├── 📁 Services
 │   ├── 📁 Implementations
@@ -165,7 +156,6 @@
 │   │   ├── 📄 OrderService.cs
 │   │   ├── 📄 ProductService.cs
 │   │   ├── 📄 ReviewService.cs
-│   │   ├── 📄 TenantPaymentSettingService.cs
 │   │   └── 📄 TenantService.cs
 │   ├── 📁 Interfaces
 │   │   ├── 📄 IAdminService.cs
@@ -178,7 +168,6 @@
 │   │   ├── 📄 IOrderService.cs
 │   │   ├── 📄 IProductService.cs
 │   │   ├── 📄 IReviewService.cs
-│   │   ├── 📄 ITenantPaymentSettingService.cs
 │   │   └── 📄 ITenantService.cs
 │   └── 📄 ServiceResult.cs
 ├── ⚙️ .gitignore

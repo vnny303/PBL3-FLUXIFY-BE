@@ -12,8 +12,9 @@ namespace FluxifyAPI.Models
         [Column("product_id")]
         public Guid ProductId { get; set; }
         [Column("price")]
-        public double Price { get; set; }
+        public decimal Price { get; set; }
 
+        [Column("stock")]
         public int Stock { get; set; }
         [Column("attributes")]
         [JsonIgnore]
@@ -43,7 +44,7 @@ namespace FluxifyAPI.Models
         }
 
         [Column("img_url")]
-        public string imgUrl { get; set; } = string.Empty;
+        public string ImgUrl { get; set; } = string.Empty;
         [JsonIgnore]
         public Product Product { get; set; } = null!;
         public List<CartItem> CartItems { get; set; } = new List<CartItem>();

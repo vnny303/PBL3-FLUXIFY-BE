@@ -55,17 +55,6 @@ namespace FluxifyAPI.Repository.Implementations
 
             return sku;
         }
-        //public async Task<ProductSku?> DecreaseProductSkuStockAsync(Guid tenantId, Guid productSkuId, int quantity)
-        //{
-        //    var sku = await GetProductSkusAsync(tenantId, productSkuId);
-        //    if (sku == null)
-        //        return null;
-        //    sku.Stock -= quantity;
-        //    if (sku.Stock < 0)
-        //        return null;
-        //    await _context.SaveChangesAsync();
-        //    return sku;
-        //}
         public async Task<bool> ProductSkuExists(Guid tenantId, Guid productSkuId)
         {
             return await _context.ProductSkus

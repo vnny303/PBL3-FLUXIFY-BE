@@ -10,7 +10,7 @@ namespace FluxifyAPI.DTOs.Product
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public Dictionary<string, List<string>>? Attributes { get; set; }
-        public List<string>? imgUrls { get; set; }
+        public List<string>? ImgUrls { get; set; }
         public double AverageRating { get; set; }
         public int ReviewCount { get; set; }
         public List<DetailSectionDto> DetailSections { get; set; } = new List<DetailSectionDto>();

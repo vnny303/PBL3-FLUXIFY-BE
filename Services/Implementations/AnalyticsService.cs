@@ -33,7 +33,7 @@ namespace FluxifyAPI.Services.Implementations
             public Guid Id { get; init; }
             public Guid? CustomerId { get; init; }
             public string? PaymentStatus { get; init; }
-            public double TotalAmount { get; init; }
+            public decimal TotalAmount { get; init; }
         }
 
         private sealed class ProductSalesRecord
@@ -41,7 +41,7 @@ namespace FluxifyAPI.Services.Implementations
             public Guid ProductId { get; init; }
             public string ProductName { get; init; } = string.Empty;
             public int QuantitySold { get; init; }
-            public double Revenue { get; init; }
+            public decimal Revenue { get; init; }
             public int OrderCount { get; init; }
         }
 
@@ -210,9 +210,9 @@ namespace FluxifyAPI.Services.Implementations
                 ToUtc = options.ToUtc,
                 TotalOrders = totalOrders,
                 PaidOrders = paidOrders,
-                GrossRevenue = grossRevenue,
-                PaidRevenue = paidRevenue,
-                AverageOrderValue = totalOrders == 0 ? 0 : double.Round(grossRevenue / totalOrders, 2, MidpointRounding.AwayFromZero),
+                GrossRevenue = (double)grossRevenue,
+                PaidRevenue = (double)paidRevenue,
+                AverageOrderValue = totalOrders == 0 ? 0 : double.Round((double)grossRevenue / totalOrders, 2, MidpointRounding.AwayFromZero),
                 NewCustomers = newCustomers,
                 ActiveCustomers = activeCustomers
             };
@@ -276,7 +276,7 @@ namespace FluxifyAPI.Services.Implementations
                         ProductId = item.ProductId,
                         ProductName = item.ProductName,
                         QuantitySold = item.QuantitySold,
-                        Revenue = item.Revenue,
+                        Revenue = (double)item.Revenue,
                         OrderCount = item.OrderCount,
                         AverageRating = rating == null ? 0 : decimal.Round(rating.AverageRating, 2, MidpointRounding.AwayFromZero),
                         ReviewCount = rating?.ReviewCount ?? 0

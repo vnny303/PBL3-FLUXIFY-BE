@@ -12,7 +12,7 @@ namespace FluxifyAPI.DTOs.Product
         public string Name { get; set; } = null!;
         public string? Description { get; set; }
         public Dictionary<string, List<string>>? Attributes { get; set; }
-        public List<string>? imgUrls { get; set; }
+        public List<string>? ImgUrls { get; set; }
 
         public double AverageRating { get; set; }
 

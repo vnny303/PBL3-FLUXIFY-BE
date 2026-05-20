@@ -17,17 +17,17 @@ namespace FluxifyAPI.Helpers
         [FromQuery(Name = "hasAttributes")]
         public bool? HasAttributes { get; set; }
 
-        private double? _priceFrom;
+        private decimal? _priceFrom;
         [FromQuery(Name = "priceFrom")]
-        public double? PriceFrom
+        public decimal? PriceFrom
         {
             get => _priceFrom;
             set => _priceFrom = value <= 0 ? null : value;
         }
 
-        private double? _priceTo;
+        private decimal? _priceTo;
         [FromQuery(Name = "priceTo")]
-        public double? PriceTo
+        public decimal? PriceTo
         {
             get => _priceTo;
             set => _priceTo = value <= 0 ? null : value;

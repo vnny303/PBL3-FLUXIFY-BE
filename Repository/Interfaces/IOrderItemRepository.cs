@@ -7,8 +7,8 @@ namespace FluxifyAPI.Repository.Interfaces
         Task<OrderItem> GetOrderItemAsync(Guid tenantId, Guid orderItemId);
         Task<List<OrderItem>> GetOrderItemsByOrderAsync(Guid tenantId, Guid orderId);
         Task<bool> HasOrderItemsByProductSkusAsync(Guid tenantId, IEnumerable<Guid> productSkuIds);
-        Task<OrderItem> CreateOrderItemAsync(Guid tenantId, Guid orderId, Guid productSkuId, int quantity, double price);
-        Task<OrderItem?> UpdateOrderItemAsync(Guid tenantId, Guid orderItemId, int quantity, double price);
+        Task<OrderItem> CreateOrderItemAsync(Guid tenantId, Guid orderId, Guid productSkuId, int quantity, decimal price);
+        Task<OrderItem?> UpdateOrderItemAsync(Guid tenantId, Guid orderItemId, int quantity, decimal price);
         Task<OrderItem?> DeleteOrderItemAsync(Guid tenantId, Guid orderItemId);
     }
 }

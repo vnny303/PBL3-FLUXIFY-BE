@@ -75,18 +75,22 @@ namespace FluxifyAPI.Services.Implementations
         {
             if (!await _customerRepository.CustomerExists(tenantId, customerId))
                 return ServiceResult<CartItemDto>.Fail(404, "Không tìm thấy khách hàng!");
-            var sku = await _productSkuRepository.GetProductSkusAsync(tenantId, updateDto.ProductSkuId);
-            if (!await _productSkuRepository.ProductSkuExists(tenantId, updateDto.ProductSkuId) || sku == null)
-                return ServiceResult<CartItemDto>.Fail(404, "Không tìm thấy SKU sản phẩm!");
             var cart = await _cartRepository.GetCartAsync(tenantId, customerId);
             if (!await _cartRepository.CartExists(tenantId, customerId) || cart == null)
                 return ServiceResult<CartItemDto>.Fail(404, "Không tìm thấy giỏ hàng!");
             var cartItem = await _cartItemRepository.GetCartItemByIdAsync(tenantId, customerId, cartItemId);
             if (cartItem == null)
                 return ServiceResult<CartItemDto>.Fail(404, "Không tìm thấy item trong giỏ hàng!");
+
+            if (updateDto.ProductSkuId != Guid.Empty && updateDto.ProductSkuId != cartItem.ProductSkuId)
+                return ServiceResult<CartItemDto>.Fail(400, "Không được đổi SKU của cart item. Hãy xóa item cũ và thêm SKU mới.");
+
+            var sku = await _productSkuRepository.GetProductSkusAsync(tenantId, cartItem.ProductSkuId);
+            if (sku == null)
+                return ServiceResult<CartItemDto>.Fail(404, "Không tìm thấy SKU sản phẩm!");
+
             if (sku.Stock < updateDto.Quantity)
                 return ServiceResult<CartItemDto>.Fail(400, $"SKU chỉ còn {sku.Stock} trong kho!");
-            cartItem.ProductSkuId = updateDto.ProductSkuId;
             cartItem.Quantity = updateDto.Quantity;
             var updatedItem = await _cartItemRepository.UpdateCartItemAsync(cartItem);
             if (updatedItem == null)

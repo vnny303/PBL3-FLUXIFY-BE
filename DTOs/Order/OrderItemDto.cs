@@ -14,7 +14,7 @@ namespace FluxifyAPI.DTOs.Order
 
         public int Quantity { get; set; }
 
-        public double UnitPrice { get; set; }
+        public decimal UnitPrice { get; set; }
     }
 }
 

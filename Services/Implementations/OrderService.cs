@@ -1,115 +1,78 @@
+using FluxifyAPI.Data;
 using FluxifyAPI.DTOs.Order;
 using FluxifyAPI.Helpers;
-using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Mapper;
-using FluxifyAPI.Services.Interfaces;
+using FluxifyAPI.Models;
+using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Services.Common;
+using FluxifyAPI.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using System.Transactions;
+using System.Data;
 
 namespace FluxifyAPI.Services.Implementations
 {
     public class OrderService : IOrderService
     {
-        private const double StandardShippingFee = 15000;
-        private const double ExpressShippingFee = 30000;
+        private const decimal StandardShippingFee = 15000m;
+        private const decimal ExpressShippingFee = 30000m;
+        private const string StatusPending = "Pending";
+        private const string StatusConfirmed = "Confirmed";
+        private const string StatusProcessing = "Processing";
+        private const string StatusShipping = "Shipping";
+        private const string StatusShipped = "Shipped";
+        private const string StatusDelivered = "Delivered";
+        private const string StatusCompleted = "Completed";
+        private const string StatusCancelled = "Cancelled";
+        private const string PaymentStatusPending = "Pending";
+        private const string PaymentMethodCod = "COD";
 
+        private static readonly Dictionary<string, string> CanonicalStatuses = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["pending"] = StatusPending,
+            ["confirmed"] = StatusConfirmed,
+            ["processing"] = StatusProcessing,
+            ["shipping"] = StatusShipping,
+            ["shipped"] = StatusShipped,
+            ["delivered"] = StatusDelivered,
+            ["completed"] = StatusCompleted,
+            ["cancelled"] = StatusCancelled,
+            ["canceled"] = StatusCancelled
+        };
+
+        private readonly AppDbContext _context;
         private readonly IOrderRepository _orderRepository;
-        private readonly IOrderItemRepository _orderItemRepository;
         private readonly ICustomerRepository _customerRepository;
+        private readonly ICustomerAddressRepository _customerAddressRepository;
         private readonly ITenantRepository _tenantRepository;
-        private readonly ITenantPaymentSettingRepository _tenantPaymentSettingRepository;
         private readonly ICartRepository _cartRepository;
-        private readonly ICartItemRepository _cartItemRepository;
-        private readonly IProductSkuRepository _productSkuRepository;
 
         public OrderService(
+            AppDbContext context,
             IOrderRepository orderRepository,
-            IOrderItemRepository orderItemRepository,
             ICustomerRepository customerRepository,
+            ICustomerAddressRepository customerAddressRepository,
             ITenantRepository tenantRepository,
-            ITenantPaymentSettingRepository tenantPaymentSettingRepository,
-            ICartRepository cartRepository,
-            ICartItemRepository cartItemRepository,
-            IProductSkuRepository productSkuRepository)
+            ICartRepository cartRepository)
         {
+            _context = context;
             _orderRepository = orderRepository;
-            _orderItemRepository = orderItemRepository;
             _customerRepository = customerRepository;
+            _customerAddressRepository = customerAddressRepository;
             _tenantRepository = tenantRepository;
-            _tenantPaymentSettingRepository = tenantPaymentSettingRepository;
             _cartRepository = cartRepository;
-            _cartItemRepository = cartItemRepository;
-            _productSkuRepository = productSkuRepository;
         }
 
         public async Task<ServiceResult<IEnumerable<OrderDto>>> GetOrdersAsync(Guid tenantId, Guid platformUserId, QueryOrder query)
         {
             if (!await _tenantRepository.IsTenantOwner(tenantId, platformUserId))
                 return ServiceResult<IEnumerable<OrderDto>>.Forbidden("Bạn không có quyền đối với đơn hàng của tenant này");
-            if (query.TotalFrom.HasValue && query.TotalTo.HasValue && query.TotalFrom.Value > query.TotalTo.Value)
-                return ServiceResult<IEnumerable<OrderDto>>.Fail(400, "totalFrom không được lớn hơn totalTo");
-            if (query.CreatedFrom.HasValue && query.CreatedTo.HasValue && query.CreatedFrom.Value > query.CreatedTo.Value)
-                return ServiceResult<IEnumerable<OrderDto>>.Fail(400, "createdFrom không được lớn hơn createdTo");
-            var orderQuery = _orderRepository.GetOrdersByTenantQuery(tenantId);
-            if (!string.IsNullOrEmpty(query.SearchTerm))
-                if (Guid.TryParse(query.SearchTerm, out var orderOrCustomerId))
-                    orderQuery = orderQuery.Where(o =>
-                        o.Id == orderOrCustomerId ||
-                        o.CustomerId == orderOrCustomerId ||
-                        (o.Address != null && o.Address.StreetAddress.Contains(query.SearchTerm)) ||
-                        (o.Status != null && o.Status.Contains(query.SearchTerm)));
-                else
-                    orderQuery = orderQuery.Where(o =>
-                        (o.Address != null && o.Address.StreetAddress.Contains(query.SearchTerm)) ||
-                        (o.Status != null && o.Status.Contains(query.SearchTerm)) ||
-                        (o.PaymentMethod != null && o.PaymentMethod.Contains(query.SearchTerm)) ||
-                        (o.PaymentStatus != null && o.PaymentStatus.Contains(query.SearchTerm)));
 
-            if (query.CustomerId.HasValue)
-                orderQuery = orderQuery.Where(o => o.CustomerId == query.CustomerId.Value);
-            if (!string.IsNullOrWhiteSpace(query.Status))
-                orderQuery = orderQuery.Where(o => o.Status != null && o.Status.ToLower() == query.Status);
-            if (!string.IsNullOrWhiteSpace(query.PaymentMethod))
-                orderQuery = orderQuery.Where(o => o.PaymentMethod != null && o.PaymentMethod.ToLower() == query.PaymentMethod);
-            if (!string.IsNullOrWhiteSpace(query.PaymentStatus))
-                orderQuery = orderQuery.Where(o => o.PaymentStatus != null && o.PaymentStatus.ToLower() == query.PaymentStatus);
-            if (query.TotalFrom.HasValue)
-                orderQuery = orderQuery.Where(o => o.TotalAmount >= query.TotalFrom.Value);
-            if (query.TotalTo.HasValue)
-                orderQuery = orderQuery.Where(o => o.TotalAmount <= query.TotalTo.Value);
-            if (query.CreatedFrom.HasValue)
-                orderQuery = orderQuery.Where(o => o.CreatedAt.HasValue && o.CreatedAt.Value >= query.CreatedFrom.Value);
-            if (query.CreatedTo.HasValue)
-                orderQuery = orderQuery.Where(o => o.CreatedAt.HasValue && o.CreatedAt.Value <= query.CreatedTo.Value);
+            var validationError = ValidateOrderQuery(query);
+            if (validationError != null)
+                return ServiceResult<IEnumerable<OrderDto>>.Fail(400, validationError);
 
-            var isDescending = string.Equals(query.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
-            switch (query.SortBy)
-            {
-                case "createdat":
-                case "created_at":
-                    orderQuery = isDescending ? orderQuery.OrderByDescending(o => o.CreatedAt).ThenByDescending(o => o.Id) : orderQuery.OrderBy(o => o.CreatedAt).ThenBy(o => o.Id);
-                    break;
-                case "totalamount":
-                case "total_amount":
-                    orderQuery = isDescending ? orderQuery.OrderByDescending(o => o.TotalAmount).ThenByDescending(o => o.Id) : orderQuery.OrderBy(o => o.TotalAmount).ThenBy(o => o.Id);
-                    break;
-                case "status":
-                    orderQuery = isDescending ? orderQuery.OrderByDescending(o => o.Status).ThenByDescending(o => o.Id) : orderQuery.OrderBy(o => o.Status).ThenBy(o => o.Id);
-                    break;
-                case "paymentstatus":
-                case "payment_status":
-                    orderQuery = isDescending ? orderQuery.OrderByDescending(o => o.PaymentStatus).ThenByDescending(o => o.Id) : orderQuery.OrderBy(o => o.PaymentStatus).ThenBy(o => o.Id);
-                    break;
-                case "id":
-                    orderQuery = isDescending ? orderQuery.OrderByDescending(o => o.Id) : orderQuery.OrderBy(o => o.Id);
-                    break;
-                default:
-                    orderQuery = orderQuery.OrderByDescending(o => o.CreatedAt).ThenByDescending(o => o.Id);
-                    break;
-            }
-            var skipNumber = (query.Page - 1) * query.PageSize;
-            var orders = await orderQuery.Skip(skipNumber).Take(query.PageSize).ToListAsync();
+            var orderQuery = ApplyOrderQuery(_orderRepository.GetOrdersByTenantQuery(tenantId), query);
+            var orders = await PageOrderQuery(orderQuery, query).ToListAsync();
             return ServiceResult<IEnumerable<OrderDto>>.Ok(orders.Select(o => o.ToOrderDto()));
         }
 
@@ -117,69 +80,129 @@ namespace FluxifyAPI.Services.Implementations
         {
             if (!await _tenantRepository.IsTenantOwner(tenantId, platformUserId))
                 return ServiceResult<OrderDto>.Forbidden("Bạn không có quyền đối với đơn hàng của tenant này");
+
             var order = await _orderRepository.GetOrderAsync(tenantId, orderId);
             if (order == null)
                 return ServiceResult<OrderDto>.Fail(404, "Không tìm thấy đơn hàng");
+
             return ServiceResult<OrderDto>.Ok(order.ToOrderDto());
         }
+
         public async Task<ServiceResult<OrderDto>> CreateOrderAsync(Guid tenantId, Guid platformUserId, CreateOrderRequestDto createDto)
         {
             if (!await _tenantRepository.IsTenantOwner(tenantId, platformUserId))
                 return ServiceResult<OrderDto>.Forbidden("Bạn không có quyền đối với đơn hàng của tenant này");
-            if (createDto.CustomerId.HasValue && await _customerRepository.GetCustomerAsync(tenantId, createDto.CustomerId.Value) == null)
-                return ServiceResult<OrderDto>.Fail(400, "Customer không tồn tại trong tenant này");
 
-            var order = createDto.ToOrderFromCreateDto(tenantId);
-
-            if (order.OrderItems == null || order.OrderItems.Count == 0)
+            if (createDto.OrderItems == null || createDto.OrderItems.Count == 0)
                 return ServiceResult<OrderDto>.Fail(400, "Đơn hàng phải có ít nhất 1 sản phẩm");
 
-            var skuByOrderItemId = new Dictionary<Guid, Models.ProductSku>();
+            var address = await _customerAddressRepository.GetAddressByIdAsync(tenantId, createDto.AddressId);
+            if (address == null)
+                return ServiceResult<OrderDto>.Fail(400, "Địa chỉ không tồn tại trong tenant này");
 
-            // Validate toàn bộ trước khi bắt đầu transaction ghi dữ liệu.
-            foreach (var orderItem in order.OrderItems)
+            if (createDto.CustomerId.HasValue)
             {
-                if (orderItem.Quantity <= 0)
+                if (address.CustomerId != createDto.CustomerId.Value)
+                    return ServiceResult<OrderDto>.Fail(400, "Địa chỉ không thuộc customer của đơn hàng");
+
+                if (await _customerRepository.GetCustomerAsync(tenantId, createDto.CustomerId.Value) == null)
+                    return ServiceResult<OrderDto>.Fail(400, "Customer không tồn tại trong tenant này");
+            }
+
+            var normalizedPaymentMethod = NormalizePaymentMethod(createDto.PaymentMethod);
+            if (normalizedPaymentMethod == null)
+                return ServiceResult<OrderDto>.Fail(400, "paymentMethod chỉ hỗ trợ COD");
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+
+            var now = DateTime.UtcNow;
+            var orderId = Guid.NewGuid();
+            var order = new Order
+            {
+                Id = orderId,
+                TenantId = tenantId,
+                CustomerId = createDto.CustomerId ?? address.CustomerId,
+                AddressId = createDto.AddressId,
+                Status = StatusPending,
+                PaymentMethod = normalizedPaymentMethod,
+                PaymentStatus = PaymentStatusPending,
+                OrderCode = BuildOrderCode(now),
+                ShippingMethod = "standard",
+                Subtotal = 0m,
+                ShippingFee = 0m,
+                TaxAmount = 0m,
+                TotalAmount = 0m,
+                CreatedAt = now,
+                OrderItems = new List<OrderItem>()
+            };
+
+            foreach (var item in createDto.OrderItems)
+            {
+                if (item.Quantity <= 0)
                     return ServiceResult<OrderDto>.Fail(400, "Số lượng sản phẩm trong đơn hàng phải lớn hơn 0");
-                var sku = await _productSkuRepository.GetProductSkusAsync(tenantId, orderItem.ProductSkuId);
+
+                var sku = await GetSkuForTenantAsync(tenantId, item.ProductSkuId);
                 if (sku == null)
-                    return ServiceResult<OrderDto>.Fail(400, $"SKU {orderItem.ProductSkuId} không tồn tại trong tenant này");
-                if (sku.Stock < orderItem.Quantity)
-                    return ServiceResult<OrderDto>.Fail(400, $"SKU {orderItem.ProductSkuId} chỉ còn {sku.Stock} trong kho, không đủ để tạo đơn hàng");
-                skuByOrderItemId[orderItem.Id] = sku;
+                    return ServiceResult<OrderDto>.Fail(400, $"SKU {item.ProductSkuId} không tồn tại trong tenant này");
+
+                var stockReserved = await TryDecreaseStockAsync(tenantId, item.ProductSkuId, item.Quantity);
+                if (!stockReserved)
+                    return ServiceResult<OrderDto>.Fail(409, $"SKU {item.ProductSkuId} không đủ tồn kho để tạo đơn hàng");
+
+                var orderItem = new OrderItem
+                {
+                    Id = Guid.NewGuid(),
+                    OrderId = orderId,
+                    ProductSkuId = item.ProductSkuId,
+                    Quantity = item.Quantity,
+                    UnitPrice = sku.Price,
+                    SelectedOptions = sku.AttributesJson
+                };
+
+                order.OrderItems.Add(orderItem);
+                order.Subtotal += sku.Price * item.Quantity;
             }
 
-            using var transaction = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
+            order.TotalAmount = order.Subtotal + order.ShippingFee + order.TaxAmount;
 
-            double totalAmount = 0;
-            foreach (var orderItem in order.OrderItems)
-            {
-                var sku = skuByOrderItemId[orderItem.Id];
-                // Đơn giá phải chốt theo giá SKU hiện tại trong DB, không lấy từ client.
-                orderItem.UnitPrice = sku.Price;
-                totalAmount += sku.Price * orderItem.Quantity;
+            await _context.Orders.AddAsync(order);
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
 
-                // Trừ tồn kho trong cùng transaction với thao tác tạo order.
-                sku.Stock -= orderItem.Quantity;
-                await _productSkuRepository.UpdateProductSkuAsync(sku);
-            }
-            order.TotalAmount = totalAmount;
-            var createdOrder = await _orderRepository.CreateOrderAsync(order);
-
-            transaction.Complete();
-
-            return ServiceResult<OrderDto>.Created(createdOrder.ToOrderDto());
+            return ServiceResult<OrderDto>.Created(order.ToOrderDto());
         }
 
         public async Task<ServiceResult<object>> UpdateOrderStatusAsync(Guid tenantId, Guid platformUserId, Guid id, UpdateOrderStatusRequestDto updateDto)
         {
             if (!await _tenantRepository.IsTenantOwner(tenantId, platformUserId))
                 return ServiceResult<object>.Forbidden("Bạn không có quyền đối với đơn hàng của tenant này");
+
+            var nextStatus = NormalizeOrderStatus(updateDto.Status);
+            if (nextStatus == null)
+                return ServiceResult<object>.Fail(400, "Trạng thái đơn hàng không hợp lệ");
+
             var order = await _orderRepository.GetOrderAsync(tenantId, id);
             if (order == null)
                 return ServiceResult<object>.Fail(404, "Không tìm thấy đơn hàng");
-            updateDto.ToOrderFromUpdateStatusDto(order);
-            await _orderRepository.UpdateOrderAsync(order);
+
+            var currentStatus = NormalizeOrderStatus(order.Status) ?? StatusPending;
+            if (!CanTransition(currentStatus, nextStatus))
+                return ServiceResult<object>.Fail(400, $"Không thể chuyển đơn hàng từ {currentStatus} sang {nextStatus}");
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+
+            if (string.Equals(nextStatus, StatusCancelled, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(currentStatus, StatusCancelled, StringComparison.OrdinalIgnoreCase))
+            {
+                foreach (var item in order.OrderItems)
+                {
+                    await IncreaseStockAsync(tenantId, item.ProductSkuId, item.Quantity);
+                }
+            }
+
+            order.Status = nextStatus;
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
             return ServiceResult<object>.Ok(new { message = "Cập nhật trạng thái đơn hàng thành công" });
         }
 
@@ -187,11 +210,31 @@ namespace FluxifyAPI.Services.Implementations
         {
             if (!await _tenantRepository.IsTenantOwner(tenantId, platformUserId))
                 return ServiceResult<object>.Forbidden("Bạn không có quyền đối với đơn hàng của tenant này");
-            if (await _orderRepository.GetOrderAsync(tenantId, orderId) == null)
+
+            var order = await _orderRepository.GetOrderAsync(tenantId, orderId);
+            if (order == null)
                 return ServiceResult<object>.Fail(404, "Không tìm thấy đơn hàng");
-            foreach (var orderItem in await _orderItemRepository.GetOrderItemsByOrderAsync(tenantId, orderId))
-                await _orderItemRepository.DeleteOrderItemAsync(tenantId, orderItem.Id);
-            await _orderRepository.DeleteOrderAsync(tenantId, orderId);
+
+            var normalizedStatus = NormalizeOrderStatus(order.Status) ?? StatusPending;
+            if (!string.Equals(normalizedStatus, StatusPending, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(normalizedStatus, StatusCancelled, StringComparison.OrdinalIgnoreCase))
+                return ServiceResult<object>.Fail(400, "Không nên xóa đơn hàng đã xử lý. Hãy chuyển sang trạng thái hủy hoặc lưu trữ thay vì xóa vật lý.");
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+
+            if (string.Equals(normalizedStatus, StatusPending, StringComparison.OrdinalIgnoreCase))
+            {
+                foreach (var item in order.OrderItems)
+                {
+                    await IncreaseStockAsync(tenantId, item.ProductSkuId, item.Quantity);
+                }
+            }
+
+            _context.OrderItems.RemoveRange(order.OrderItems);
+            _context.Orders.Remove(order);
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
             return ServiceResult<object>.Ok(new { message = "Xóa đơn hàng thành công" });
         }
 
@@ -199,73 +242,15 @@ namespace FluxifyAPI.Services.Implementations
         {
             if (!await _customerRepository.CustomerExists(tenantId, customerId))
                 return ServiceResult<IEnumerable<OrderDto>>.Fail(404, "Không tìm thấy khách hàng");
-            var orderQuery = _orderRepository.GetOrdersByTenantQuery(tenantId)
+
+            var validationError = ValidateOrderQuery(query);
+            if (validationError != null)
+                return ServiceResult<IEnumerable<OrderDto>>.Fail(400, validationError);
+
+            var orderQuery = ApplyOrderQuery(_orderRepository.GetOrdersByTenantQuery(tenantId), query)
                 .Where(o => o.CustomerId == customerId);
-            if (!string.IsNullOrEmpty(query.SearchTerm))
-            {
-                if (Guid.TryParse(query.SearchTerm, out var orderId))
-                {
-                    orderQuery = orderQuery.Where(o =>
-                        o.Id == orderId ||
-                        (o.Address != null && o.Address.StreetAddress.Contains(query.SearchTerm)) ||
-                        (o.Status != null && o.Status.Contains(query.SearchTerm)));
-                }
-                else
-                {
-                    orderQuery = orderQuery.Where(o =>
-                        (o.Address != null && o.Address.StreetAddress.Contains(query.SearchTerm)) ||
-                        (o.Status != null && o.Status.Contains(query.SearchTerm)) ||
-                        (o.PaymentMethod != null && o.PaymentMethod.Contains(query.SearchTerm)) ||
-                        (o.PaymentStatus != null && o.PaymentStatus.Contains(query.SearchTerm)));
-                }
-            }
 
-            if (!string.IsNullOrWhiteSpace(query.Status))
-                orderQuery = orderQuery.Where(o => o.Status != null && o.Status.ToLower() == query.Status);
-
-            if (!string.IsNullOrWhiteSpace(query.PaymentMethod))
-                orderQuery = orderQuery.Where(o => o.PaymentMethod != null && o.PaymentMethod.ToLower() == query.PaymentMethod);
-
-            if (!string.IsNullOrWhiteSpace(query.PaymentStatus))
-                orderQuery = orderQuery.Where(o => o.PaymentStatus != null && o.PaymentStatus.ToLower() == query.PaymentStatus);
-            if (query.TotalFrom.HasValue)
-                orderQuery = orderQuery.Where(o => o.TotalAmount >= query.TotalFrom.Value);
-            if (query.TotalTo.HasValue)
-                orderQuery = orderQuery.Where(o => o.TotalAmount <= query.TotalTo.Value);
-            if (query.CreatedFrom.HasValue)
-                orderQuery = orderQuery.Where(o => o.CreatedAt.HasValue && o.CreatedAt.Value >= query.CreatedFrom.Value);
-            if (query.CreatedTo.HasValue)
-                orderQuery = orderQuery.Where(o => o.CreatedAt.HasValue && o.CreatedAt.Value <= query.CreatedTo.Value);
-
-            var isDescending = string.Equals(query.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
-
-            switch (query.SortBy)
-            {
-                case "createdat":
-                case "created_at":
-                    orderQuery = isDescending ? orderQuery.OrderByDescending(o => o.CreatedAt).ThenByDescending(o => o.Id) : orderQuery.OrderBy(o => o.CreatedAt).ThenBy(o => o.Id);
-                    break;
-                case "totalamount":
-                case "total_amount":
-                    orderQuery = isDescending ? orderQuery.OrderByDescending(o => o.TotalAmount).ThenByDescending(o => o.Id) : orderQuery.OrderBy(o => o.TotalAmount).ThenBy(o => o.Id);
-                    break;
-                case "status":
-                    orderQuery = isDescending ? orderQuery.OrderByDescending(o => o.Status).ThenByDescending(o => o.Id) : orderQuery.OrderBy(o => o.Status).ThenBy(o => o.Id);
-                    break;
-                case "paymentstatus":
-                case "payment_status":
-                    orderQuery = isDescending ? orderQuery.OrderByDescending(o => o.PaymentStatus).ThenByDescending(o => o.Id) : orderQuery.OrderBy(o => o.PaymentStatus).ThenBy(o => o.Id);
-                    break;
-                case "id":
-                    orderQuery = isDescending ? orderQuery.OrderByDescending(o => o.Id) : orderQuery.OrderBy(o => o.Id);
-                    break;
-                default:
-                    orderQuery = orderQuery.OrderByDescending(o => o.CreatedAt).ThenByDescending(o => o.Id);
-                    break;
-            }
-
-            var skipNumber = (query.Page - 1) * query.PageSize;
-            var orders = await orderQuery.Skip(skipNumber).Take(query.PageSize).ToListAsync();
+            var orders = await PageOrderQuery(orderQuery, query).ToListAsync();
             return ServiceResult<IEnumerable<OrderDto>>.Ok(orders.Select(o => o.ToOrderDto()));
         }
 
@@ -273,11 +258,14 @@ namespace FluxifyAPI.Services.Implementations
         {
             if (!await _customerRepository.CustomerExists(tenantId, customerId))
                 return ServiceResult<OrderDto>.Fail(404, "Không tìm thấy khách hàng");
+
             var order = await _orderRepository.GetOrderAsync(tenantId, orderId);
             if (order == null)
                 return ServiceResult<OrderDto>.Fail(404, "Không tìm thấy đơn hàng");
+
             if (order.CustomerId != customerId)
                 return ServiceResult<OrderDto>.Forbidden("Bạn không có quyền truy cập đơn hàng này");
+
             return ServiceResult<OrderDto>.Ok(order.ToOrderDto());
         }
 
@@ -286,140 +274,86 @@ namespace FluxifyAPI.Services.Implementations
             if (!await _customerRepository.CustomerExists(tenantId, customerId))
                 return ServiceResult<OrderDto>.Fail(404, "Không tìm thấy khách hàng");
 
+            var address = await _customerAddressRepository.GetAddressByIdAsync(tenantId, checkoutDto.AddressId);
+            if (address == null || address.CustomerId != customerId)
+                return ServiceResult<OrderDto>.Fail(400, "Địa chỉ giao hàng không tồn tại hoặc không thuộc về bạn");
+
             var normalizedShippingMethod = NormalizeShippingMethod(checkoutDto.ShippingMethod);
             if (normalizedShippingMethod == null)
                 return ServiceResult<OrderDto>.Fail(400, "shippingMethod chỉ hỗ trợ standard hoặc express");
 
-            var normalizedPaymentMethod = string.IsNullOrWhiteSpace(checkoutDto.PaymentMethod) ? "COD" : checkoutDto.PaymentMethod.Trim();
+            var normalizedPaymentMethod = NormalizePaymentMethod(checkoutDto.PaymentMethod);
+            if (normalizedPaymentMethod == null)
+                return ServiceResult<OrderDto>.Fail(400, "paymentMethod chỉ hỗ trợ COD");
+
+            await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
             var cart = await _cartRepository.GetCartAsync(tenantId, customerId);
             if (cart == null)
                 return ServiceResult<OrderDto>.Fail(404, "Không tìm thấy giỏ hàng");
 
-            if (cart.CartItems == null || !cart.CartItems.Any())
+            var cartItems = cart.CartItems?.ToList() ?? new List<CartItem>();
+            if (cartItems.Count == 0)
                 return ServiceResult<OrderDto>.Fail(400, "Giỏ hàng trống");
 
-            var cartItems = cart.CartItems.ToList();
-
-            var skuByCartItemId = new Dictionary<Guid, Models.ProductSku>();
-            var orderItems = new List<Models.OrderItem>();
-            double subtotal = 0;
+            var now = DateTime.UtcNow;
+            var orderCode = BuildOrderCode(now);
+            var order = new Order
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                CustomerId = customerId,
+                AddressId = checkoutDto.AddressId,
+                Status = StatusPending,
+                PaymentMethod = normalizedPaymentMethod,
+                PaymentStatus = PaymentStatusPending,
+                OrderCode = orderCode,
+                OrderNote = string.IsNullOrWhiteSpace(checkoutDto.OrderNote) ? null : checkoutDto.OrderNote.Trim(),
+                ShippingMethod = normalizedShippingMethod,
+                Subtotal = 0m,
+                ShippingFee = normalizedShippingMethod == "express" ? ExpressShippingFee : StandardShippingFee,
+                TaxAmount = 0m,
+                TotalAmount = 0m,
+                PaidAt = null,
+                CreatedAt = now,
+                OrderItems = new List<OrderItem>()
+            };
 
             foreach (var cartItem in cartItems)
             {
                 if (cartItem.Quantity <= 0)
                     return ServiceResult<OrderDto>.Fail(400, "Có sản phẩm trong giỏ hàng có số lượng không hợp lệ");
 
-                var sku = await _productSkuRepository.GetProductSkusAsync(tenantId, cartItem.ProductSkuId);
+                var sku = await GetSkuForTenantAsync(tenantId, cartItem.ProductSkuId);
                 if (sku == null)
                     return ServiceResult<OrderDto>.Fail(404, $"Không tìm thấy SKU {cartItem.ProductSkuId}");
 
-                if (sku.Stock < cartItem.Quantity)
-                    return ServiceResult<OrderDto>.Fail(400, $"SKU {cartItem.ProductSkuId} chỉ còn {sku.Stock} trong kho");
+                var stockReserved = await TryDecreaseStockAsync(tenantId, cartItem.ProductSkuId, cartItem.Quantity);
+                if (!stockReserved)
+                    return ServiceResult<OrderDto>.Fail(409, $"SKU {cartItem.ProductSkuId} không đủ tồn kho để thanh toán");
 
-                skuByCartItemId[cartItem.Id] = sku;
-
-                orderItems.Add(new Models.OrderItem
+                order.OrderItems.Add(new OrderItem
                 {
                     Id = Guid.NewGuid(),
+                    OrderId = order.Id,
                     ProductSkuId = cartItem.ProductSkuId,
                     Quantity = cartItem.Quantity,
-                    UnitPrice = sku.Price
+                    UnitPrice = sku.Price,
+                    SelectedOptions = sku.AttributesJson
                 });
 
-                subtotal += sku.Price * cartItem.Quantity;
+                order.Subtotal += sku.Price * cartItem.Quantity;
             }
 
-            var shippingFee = normalizedShippingMethod == "express" ? ExpressShippingFee : StandardShippingFee;
-            var taxAmount = 0;
-            var totalAmount = subtotal + shippingFee + taxAmount;
+            order.TotalAmount = order.Subtotal + order.ShippingFee + order.TaxAmount;
 
-            var now = DateTime.UtcNow;
-            var orderCode = await BuildOrderCodeAsync(tenantId, now);
-            var paymentReference = orderCode;
-            var transferContent = orderCode;
+            await _context.Orders.AddAsync(order);
+            _context.CartItems.RemoveRange(cartItems);
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
 
-            string? bankName = null;
-            string? bankCode = null;
-            string? bankAccountNumber = null;
-            string? bankAccountName = null;
-
-            if (string.Equals(normalizedPaymentMethod, "BankTransfer", StringComparison.OrdinalIgnoreCase))
-            {
-                var bankSettings = await _tenantPaymentSettingRepository.GetActiveByTenantIdAsync(tenantId);
-                if (bankSettings == null)
-                    return ServiceResult<OrderDto>.Fail(400, "Tenant chưa cấu hình thông tin nhận chuyển khoản");
-
-                bankName = bankSettings.BankName;
-                bankCode = bankSettings.BankCode;
-                bankAccountNumber = bankSettings.BankAccountNumber;
-                bankAccountName = bankSettings.BankAccountName;
-            }
-
-            var order = new Models.Order
-            {
-                Id = Guid.NewGuid(),
-                TenantId = tenantId,
-                CustomerId = customerId,
-                AddressId = checkoutDto.AddressId,
-                Status = "Pending",
-                PaymentMethod = normalizedPaymentMethod,
-                PaymentStatus = "Pending",
-                OrderCode = orderCode,
-                PaymentReference = paymentReference,
-                TransferContent = transferContent,
-                OrderNote = string.IsNullOrWhiteSpace(checkoutDto.OrderNote) ? null : checkoutDto.OrderNote.Trim(),
-                ShippingMethod = normalizedShippingMethod,
-                Subtotal = subtotal,
-                ShippingFee = shippingFee,
-                TaxAmount = taxAmount,
-                TotalAmount = totalAmount,
-                PaidAt = null,
-                CreatedAt = now,
-                OrderItems = orderItems
-            };
-
-            var createdOrder = await _orderRepository.CreateOrderAsync(order);
-
-            foreach (var cartItem in cartItems)
-            {
-                var sku = skuByCartItemId[cartItem.Id];
-                sku.Stock -= cartItem.Quantity;
-                await _productSkuRepository.UpdateProductSkuAsync(sku);
-                await _cartItemRepository.DeleteCartItemAsync(tenantId, customerId, cartItem.Id);
-            }
-
-            var response = createdOrder.ToOrderDto();
-            response.BankName = bankName;
-            response.BankCode = bankCode;
-            response.BankAccountNumber = bankAccountNumber;
-            response.BankAccountName = bankAccountName;
-
-            return ServiceResult<OrderDto>.Created(response);
+            return ServiceResult<OrderDto>.Created(order.ToOrderDto());
         }
-
-        private static string? NormalizeShippingMethod(string? shippingMethod)
-        {
-            if (string.IsNullOrWhiteSpace(shippingMethod))
-                return "standard";
-
-            var normalized = shippingMethod.Trim().ToLowerInvariant();
-            if (normalized == "standard" || normalized == "express")
-                return normalized;
-
-            return null;
-        }
-
-        private async Task<string> BuildOrderCodeAsync(Guid tenantId, DateTime now)
-        {
-            var date = now.Date;
-            var nextSequence = await _orderRepository.GetOrdersByTenantQuery(tenantId)
-                .Where(o => o.CreatedAt.HasValue && o.CreatedAt.Value.Date == date)
-                .CountAsync() + 1;
-
-            return $"ORD-{now:yyyyMMdd}-{nextSequence:D4}";
-        }
-
 
         public async Task<ServiceResult<object>> CancelMyOrderAsync(Guid tenantId, Guid customerId, Guid orderId)
         {
@@ -433,36 +367,202 @@ namespace FluxifyAPI.Services.Implementations
             if (order.CustomerId != customerId)
                 return ServiceResult<object>.Forbidden("Bạn không có quyền truy cập đơn hàng này");
 
-            var currentStatus = order.Status?.Trim().ToLowerInvariant();
-
-            if (currentStatus == "cancelled" || currentStatus == "canceled")
-                return ServiceResult<object>.Fail(400, "Đơn hàng đã bị hủy trước đó");
-
-            if (currentStatus == "completed" ||
-                currentStatus == "delivered" ||
-                currentStatus == "shipping" ||
-                currentStatus == "shipped")
+            var currentStatus = NormalizeOrderStatus(order.Status) ?? StatusPending;
+            if (!CanCancel(currentStatus))
                 return ServiceResult<object>.Fail(400, "Không thể hủy đơn hàng ở trạng thái hiện tại");
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
 
             foreach (var item in order.OrderItems)
             {
-                var sku = await _productSkuRepository.GetProductSkusAsync(tenantId, item.ProductSkuId);
-                if (sku == null)
-                    continue;
-
-                sku.Stock += item.Quantity;
-                await _productSkuRepository.UpdateProductSkuAsync(sku);
+                await IncreaseStockAsync(tenantId, item.ProductSkuId, item.Quantity);
             }
 
-            order.Status = "Cancelled";
-            await _orderRepository.UpdateOrderAsync(order);
+            order.Status = StatusCancelled;
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
 
             return ServiceResult<object>.Ok(new { message = "Hủy đơn hàng thành công" });
         }
+
+        private static string? ValidateOrderQuery(QueryOrder query)
+        {
+            if (query.TotalFrom.HasValue && query.TotalTo.HasValue && query.TotalFrom.Value > query.TotalTo.Value)
+                return "totalFrom không được lớn hơn totalTo";
+
+            if (query.CreatedFrom.HasValue && query.CreatedTo.HasValue && query.CreatedFrom.Value > query.CreatedTo.Value)
+                return "createdFrom không được lớn hơn createdTo";
+
+            return null;
+        }
+
+        private static IQueryable<Order> ApplyOrderQuery(IQueryable<Order> orderQuery, QueryOrder query)
+        {
+            if (!string.IsNullOrEmpty(query.SearchTerm))
+            {
+                if (Guid.TryParse(query.SearchTerm, out var orderOrCustomerId))
+                {
+                    orderQuery = orderQuery.Where(o =>
+                        o.Id == orderOrCustomerId ||
+                        o.CustomerId == orderOrCustomerId ||
+                        (o.Address != null && o.Address.StreetAddress.Contains(query.SearchTerm)) ||
+                        (o.Status != null && o.Status.Contains(query.SearchTerm)));
+                }
+                else
+                {
+                    orderQuery = orderQuery.Where(o =>
+                        (o.Address != null && o.Address.StreetAddress.Contains(query.SearchTerm)) ||
+                        (o.Status != null && o.Status.Contains(query.SearchTerm)) ||
+                        (o.PaymentMethod != null && o.PaymentMethod.Contains(query.SearchTerm)) ||
+                        (o.PaymentStatus != null && o.PaymentStatus.Contains(query.SearchTerm)));
+                }
+            }
+
+            if (query.CustomerId.HasValue)
+                orderQuery = orderQuery.Where(o => o.CustomerId == query.CustomerId.Value);
+            if (!string.IsNullOrWhiteSpace(query.Status))
+            {
+                var normalizedStatus = query.Status.Trim().ToLowerInvariant();
+                orderQuery = orderQuery.Where(o => o.Status != null && o.Status.ToLower() == normalizedStatus);
+            }
+            if (!string.IsNullOrWhiteSpace(query.PaymentMethod))
+            {
+                var normalizedPaymentMethod = query.PaymentMethod.Trim().ToLowerInvariant();
+                orderQuery = orderQuery.Where(o => o.PaymentMethod != null && o.PaymentMethod.ToLower() == normalizedPaymentMethod);
+            }
+            if (!string.IsNullOrWhiteSpace(query.PaymentStatus))
+            {
+                var normalizedPaymentStatus = query.PaymentStatus.Trim().ToLowerInvariant();
+                orderQuery = orderQuery.Where(o => o.PaymentStatus != null && o.PaymentStatus.ToLower() == normalizedPaymentStatus);
+            }
+            if (query.TotalFrom.HasValue)
+                orderQuery = orderQuery.Where(o => o.TotalAmount >= query.TotalFrom.Value);
+            if (query.TotalTo.HasValue)
+                orderQuery = orderQuery.Where(o => o.TotalAmount <= query.TotalTo.Value);
+            if (query.CreatedFrom.HasValue)
+                orderQuery = orderQuery.Where(o => o.CreatedAt.HasValue && o.CreatedAt.Value >= query.CreatedFrom.Value);
+            if (query.CreatedTo.HasValue)
+                orderQuery = orderQuery.Where(o => o.CreatedAt.HasValue && o.CreatedAt.Value <= query.CreatedTo.Value);
+
+            return orderQuery;
+        }
+
+        private static IQueryable<Order> PageOrderQuery(IQueryable<Order> orderQuery, QueryOrder query)
+        {
+            var isDescending = string.Equals(query.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+            orderQuery = query.SortBy switch
+            {
+                "createdat" or "created_at" => isDescending ? orderQuery.OrderByDescending(o => o.CreatedAt).ThenByDescending(o => o.Id) : orderQuery.OrderBy(o => o.CreatedAt).ThenBy(o => o.Id),
+                "totalamount" or "total_amount" => isDescending ? orderQuery.OrderByDescending(o => o.TotalAmount).ThenByDescending(o => o.Id) : orderQuery.OrderBy(o => o.TotalAmount).ThenBy(o => o.Id),
+                "status" => isDescending ? orderQuery.OrderByDescending(o => o.Status).ThenByDescending(o => o.Id) : orderQuery.OrderBy(o => o.Status).ThenBy(o => o.Id),
+                "paymentstatus" or "payment_status" => isDescending ? orderQuery.OrderByDescending(o => o.PaymentStatus).ThenByDescending(o => o.Id) : orderQuery.OrderBy(o => o.PaymentStatus).ThenBy(o => o.Id),
+                "id" => isDescending ? orderQuery.OrderByDescending(o => o.Id) : orderQuery.OrderBy(o => o.Id),
+                _ => orderQuery.OrderByDescending(o => o.CreatedAt).ThenByDescending(o => o.Id)
+            };
+
+            var skipNumber = (query.Page - 1) * query.PageSize;
+            return orderQuery.Skip(skipNumber).Take(query.PageSize);
+        }
+
+        private async Task<ProductSku?> GetSkuForTenantAsync(Guid tenantId, Guid productSkuId)
+        {
+            return await _context.ProductSkus
+                .AsNoTracking()
+                .Include(ps => ps.Product)
+                .FirstOrDefaultAsync(ps => ps.Id == productSkuId && ps.Product.TenantId == tenantId);
+        }
+
+        private async Task<bool> TryDecreaseStockAsync(Guid tenantId, Guid productSkuId, int quantity)
+        {
+            var affectedRows = await _context.Database.ExecuteSqlInterpolatedAsync($@"
+                UPDATE ps
+                SET stock = stock - {quantity}
+                FROM product_skus AS ps
+                INNER JOIN products AS p ON p.id = ps.product_id
+                WHERE ps.id = {productSkuId}
+                  AND p.tenant_id = {tenantId}
+                  AND ps.stock >= {quantity}");
+
+            return affectedRows == 1;
+        }
+
+        private async Task IncreaseStockAsync(Guid tenantId, Guid productSkuId, int quantity)
+        {
+            await _context.Database.ExecuteSqlInterpolatedAsync($@"
+                UPDATE ps
+                SET stock = stock + {quantity}
+                FROM product_skus AS ps
+                INNER JOIN products AS p ON p.id = ps.product_id
+                WHERE ps.id = {productSkuId}
+                  AND p.tenant_id = {tenantId}");
+        }
+
+        private static string BuildOrderCode(DateTime now)
+        {
+            return $"ORD-{now:yyyyMMdd-HHmmssfff}-{Guid.NewGuid():N}"[..31];
+        }
+
+        private static string? NormalizeShippingMethod(string? shippingMethod)
+        {
+            if (string.IsNullOrWhiteSpace(shippingMethod))
+                return "standard";
+
+            var normalized = shippingMethod.Trim().ToLowerInvariant();
+            return normalized is "standard" or "express" ? normalized : null;
+        }
+
+        private static string? NormalizePaymentMethod(string? paymentMethod)
+        {
+            if (string.IsNullOrWhiteSpace(paymentMethod))
+                return PaymentMethodCod;
+
+            var normalized = paymentMethod.Trim();
+            if (string.Equals(normalized, PaymentMethodCod, StringComparison.OrdinalIgnoreCase))
+                return PaymentMethodCod;
+
+            return null;
+        }
+
+        private static string? NormalizeOrderStatus(string? status)
+        {
+            if (string.IsNullOrWhiteSpace(status))
+                return null;
+
+            var key = status.Trim().ToLowerInvariant();
+            return CanonicalStatuses.TryGetValue(key, out var canonical) ? canonical : null;
+        }
+
+        private static bool CanCancel(string currentStatus)
+        {
+            return string.Equals(currentStatus, StatusPending, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(currentStatus, StatusConfirmed, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(currentStatus, StatusProcessing, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool CanTransition(string currentStatus, string nextStatus)
+        {
+            if (string.Equals(currentStatus, nextStatus, StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            if (IsFinalStatus(currentStatus))
+                return false;
+
+            return currentStatus switch
+            {
+                StatusPending => nextStatus == StatusConfirmed || nextStatus == StatusProcessing || nextStatus == StatusCancelled,
+                StatusConfirmed => nextStatus == StatusProcessing || nextStatus == StatusShipping || nextStatus == StatusCancelled,
+                StatusProcessing => nextStatus == StatusShipping || nextStatus == StatusShipped || nextStatus == StatusCancelled,
+                StatusShipping => nextStatus == StatusShipped || nextStatus == StatusDelivered,
+                StatusShipped => nextStatus == StatusDelivered || nextStatus == StatusCompleted,
+                _ => false
+            };
+        }
+
+        private static bool IsFinalStatus(string status)
+        {
+            return string.Equals(status, StatusCancelled, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(status, StatusDelivered, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(status, StatusCompleted, StringComparison.OrdinalIgnoreCase);
+        }
     }
 }
-
-
-
-
-
