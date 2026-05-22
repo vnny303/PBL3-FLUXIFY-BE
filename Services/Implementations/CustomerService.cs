@@ -1,3 +1,4 @@
+using FluxifyAPI.Data;
 using FluxifyAPI.DTOs.Customer;
 using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Mapper;
@@ -11,16 +12,15 @@ namespace FluxifyAPI.Services.Implementations
 {
     public class CustomerService : ICustomerService
     {
+        private readonly AppDbContext _context;
         private readonly ICustomerRepository _customerRepository;
         private readonly ITenantRepository _tenantRepository;
         private readonly ICartRepository _cartRepository;
         private readonly ICartItemRepository _cartItemRepository;
 
-        public CustomerService(ICustomerRepository customerRepository,
-                                ITenantRepository tenantRepository,
-                                ICartRepository cartRepository,
-                                ICartItemRepository cartItemRepository)
+        public CustomerService(AppDbContext context, ICustomerRepository customerRepository, ITenantRepository tenantRepository, ICartRepository cartRepository, ICartItemRepository cartItemRepository)
         {
+            _context = context;
             _customerRepository = customerRepository;
             _tenantRepository = tenantRepository;
             _cartRepository = cartRepository;
@@ -83,16 +83,16 @@ namespace FluxifyAPI.Services.Implementations
                 return ServiceResult<object>.Forbidden("Bạn không có quyền truy cập vào tenant này");
             if (!await _customerRepository.CustomerExists(tenantId, customerId))
                 return ServiceResult<object>.Fail(404, "Customer không tồn tại");
-            // Xóa cart item liên quan đến customer trước khi xóa customer
-            foreach (var cartItem in await _cartItemRepository.GetCartItemsAsync(tenantId, customerId) ?? Enumerable.Empty<CartItem>())
-                await _cartItemRepository.DeleteCartItemAsync(tenantId, customerId, cartItem.Id);
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+
+            // Xóa cart items → cart → customer theo đúng thứ tự FK (Restrict)
+            await _cartItemRepository.ClearCartItemsAsync(tenantId, customerId);
             await _cartRepository.DeleteCartAsync(tenantId, customerId);
             await _customerRepository.DeleteCustomerAsync(tenantId, customerId);
+
+            await transaction.CommitAsync();
             return ServiceResult<object>.Ok(new { message = "Xóa customer thành công" });
         }
     }
 }
-
-
-
-

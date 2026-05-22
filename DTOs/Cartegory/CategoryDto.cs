@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using FluxifyAPI.DTOs.Product;
 
-namespace FluxifyAPI.DTOs.Cartegory
+namespace FluxifyAPI.DTOs.Category
 {
     public class CategoryDto
     {

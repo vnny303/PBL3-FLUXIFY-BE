@@ -33,7 +33,7 @@
 │   │   ├── 📄 CreateCartItemRequestDto.cs
 │   │   ├── 📄 CreateCartRequestDto.cs
 │   │   └── 📄 UpdateCartItemRequestDto.cs
-│   ├── 📁 Cartegory
+│   ├── 📁 Category
 │   │   ├── 📄 CategoryDto.cs
 │   │   ├── 📄 CreateCategoryRequestDto.cs
 │   │   └── 📄 UpdateCategoryRequestDto.cs

@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace FluxifyAPI.DTOs.Cartegory
+namespace FluxifyAPI.DTOs.Category
 {
     public class UpdateCategoryRequestDto
     {

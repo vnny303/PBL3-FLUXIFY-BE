@@ -24,6 +24,7 @@ namespace FluxifyAPI.Services.Implementations
         private const string StatusCompleted = "Completed";
         private const string StatusCancelled = "Cancelled";
         private const string PaymentStatusPending = "Pending";
+        private const string PaymentStatusPaid = "paid";
         private const string PaymentMethodCod = "COD";
 
         private static readonly Dictionary<string, string> CanonicalStatuses = new(StringComparer.OrdinalIgnoreCase)
@@ -201,6 +202,16 @@ namespace FluxifyAPI.Services.Implementations
             }
 
             order.Status = nextStatus;
+
+            if (string.Equals(order.PaymentMethod, PaymentMethodCod, StringComparison.OrdinalIgnoreCase)
+                && (string.Equals(nextStatus, StatusDelivered, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(nextStatus, StatusCompleted, StringComparison.OrdinalIgnoreCase))
+                && !string.Equals(order.PaymentStatus, PaymentStatusPaid, StringComparison.OrdinalIgnoreCase))
+            {
+                order.PaymentStatus = PaymentStatusPaid;
+                order.PaidAt = DateTime.UtcNow;
+            }
+
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
             return ServiceResult<object>.Ok(new { message = "Cập nhật trạng thái đơn hàng thành công" });

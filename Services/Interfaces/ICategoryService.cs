@@ -1,4 +1,4 @@
-using FluxifyAPI.DTOs.Cartegory;
+using FluxifyAPI.DTOs.Category;
 using FluxifyAPI.Helpers;
 using FluxifyAPI.Services.Common;
 

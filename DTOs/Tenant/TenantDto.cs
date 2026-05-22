@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using FluxifyAPI.DTOs.Cartegory;
+using FluxifyAPI.DTOs.Category;
 using FluxifyAPI.DTOs.Customer;
 using FluxifyAPI.DTOs.Order;
 

@@ -1,4 +1,5 @@
-using FluxifyAPI.DTOs.Cartegory;
+using FluxifyAPI.Data;
+using FluxifyAPI.DTOs.Category;
 using FluxifyAPI.Helpers;
 using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Mapper;
@@ -11,16 +12,19 @@ namespace FluxifyAPI.Services.Implementations
 {
     public class CategoryService : ICategoryService
     {
+        private readonly AppDbContext _context;
         private readonly ICategoryRepository _categoryRepository;
         private readonly IProductRepository _productRepository;
         private readonly IProductSkuRepository _productSkuRepository;
         private readonly ITenantRepository _tenantRepository;
 
-        public CategoryService(ICategoryRepository categoryRepository,
+        public CategoryService(AppDbContext context,
+                                ICategoryRepository categoryRepository,
                                 IProductRepository productRepository,
                                 IProductSkuRepository productSkuRepository,
                                 ITenantRepository tenantRepository)
         {
+            _context = context;
             _categoryRepository = categoryRepository;
             _productRepository = productRepository;
             _productSkuRepository = productSkuRepository;
@@ -104,15 +108,77 @@ namespace FluxifyAPI.Services.Implementations
         {
             if (!await _tenantRepository.IsTenantOwner(tenantId, platformUserId))
                 return ServiceResult<object>.Forbidden("Bạn không có quyền đối với danh mục của tenant này!");
-            if (!await _categoryRepository.CategoryExists(tenantId, categoryId))
+
+            var category = await _categoryRepository.GetCategoryAsync(tenantId, categoryId);
+            if (category == null)
                 return ServiceResult<object>.Fail(404, "Không tìm thấy danh mục!");
-            foreach (var product in (await _categoryRepository.GetCategoryAsync(tenantId, categoryId))?.Products ?? Enumerable.Empty<Product>())
+
+            var productIds = category.Products.Select(p => p.Id).ToList();
+
+            if (productIds.Count > 0)
             {
-                foreach (var productSku in await _productSkuRepository.GetProductSkusByProductAsync(tenantId, product.Id) ?? Enumerable.Empty<ProductSku>())
-                    await _productSkuRepository.DeleteProductSkuAsync(tenantId, productSku.Id);
-                await _productRepository.DeleteProductAsync(tenantId, product.Id);
+                var skuIds = await _context.ProductSkus
+                    .AsNoTracking()
+                    .Where(ps => productIds.Contains(ps.ProductId))
+                    .Select(ps => ps.Id)
+                    .ToListAsync();
+
+                // Không xóa category nếu còn order items tham chiếu SKU thuộc category này
+                // (giống behavior của ProductService.DeleteProductAsync)
+                if (skuIds.Count > 0)
+                {
+                    var hasOrders = await _context.OrderItems
+                        .AsNoTracking()
+                        .AnyAsync(oi => skuIds.Contains(oi.ProductSkuId) && oi.Order.TenantId == tenantId);
+                    if (hasOrders)
+                        return ServiceResult<object>.Fail(400,
+                            "Không thể xóa danh mục vì có sản phẩm đang được tham chiếu trong đơn hàng.");
+                }
             }
-            await _categoryRepository.DeleteCategoryAsync(tenantId, categoryId);
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+
+            if (productIds.Count > 0)
+            {
+                var skuIds = await _context.ProductSkus
+                    .Where(ps => productIds.Contains(ps.ProductId))
+                    .Select(ps => ps.Id)
+                    .ToListAsync();
+
+                if (skuIds.Count > 0)
+                {
+                    // Xóa cart items trỏ vào các SKU này (Restrict FK nên phải xóa trước)
+                    var cartItems = await _context.CartItems
+                        .Where(ci => skuIds.Contains(ci.ProductSkuId))
+                        .ToListAsync();
+                    _context.CartItems.RemoveRange(cartItems);
+
+                    // Xóa reviews trỏ vào các SKU này
+                    var reviews = await _context.Reviews
+                        .Where(r => skuIds.Contains(r.ProductSkuId) && r.TenantId == tenantId)
+                        .ToListAsync();
+                    _context.Reviews.RemoveRange(reviews);
+
+                    // Bulk delete SKUs
+                    var skus = await _context.ProductSkus
+                        .Where(ps => productIds.Contains(ps.ProductId))
+                        .ToListAsync();
+                    _context.ProductSkus.RemoveRange(skus);
+                }
+
+                // Bulk delete products
+                var products = await _context.Products
+                    .Where(p => productIds.Contains(p.Id))
+                    .ToListAsync();
+                _context.Products.RemoveRange(products);
+
+                await _context.SaveChangesAsync();
+            }
+
+            _context.Categories.Remove(category);
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
             return ServiceResult<object>.Ok(new { message = "Xóa thành công!" });
         }
     }

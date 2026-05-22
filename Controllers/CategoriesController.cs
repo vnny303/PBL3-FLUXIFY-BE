@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using FluxifyAPI.DTOs.Cartegory;
+using FluxifyAPI.DTOs.Category;
 using FluxifyAPI.Helpers;
 using FluxifyAPI.Services.Interfaces;
 using System.Security.Claims;

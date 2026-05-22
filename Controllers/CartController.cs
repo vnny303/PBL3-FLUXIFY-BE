@@ -6,7 +6,7 @@ using System.Security.Claims;
 
 namespace FluxifyAPI.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "customer")]
     [Route("api/[controller]")]
     [ApiController]
     public class CartController : ControllerBase

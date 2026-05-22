@@ -12,8 +12,6 @@ namespace FluxifyAPI.DTOs.Order
         [RegularExpression("^COD$", ErrorMessage = "paymentMethod chỉ nhận COD")]
         public string? PaymentMethod { get; set; }
 
-        public string? PaymentStatus { get; set; }
-
         [MinLength(1, ErrorMessage = "Đơn hàng phải có ít nhất 1 sản phẩm")]
         public List<CreateOrderItemRequestDto> OrderItems { get; set; } = new List<CreateOrderItemRequestDto>();
     }

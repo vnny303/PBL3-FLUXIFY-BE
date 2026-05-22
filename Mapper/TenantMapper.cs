@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using FluxifyAPI.DTOs.Cartegory;
+using FluxifyAPI.DTOs.Category;
 using FluxifyAPI.DTOs.Customer;
 using FluxifyAPI.DTOs.Order;
 using FluxifyAPI.DTOs.Tenant;

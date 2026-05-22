@@ -20,4 +20,3 @@ namespace FluxifyAPI.Models
         public ProductSku ProductSku { get; set; } = null!;
     }
 }
-

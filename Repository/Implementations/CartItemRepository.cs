@@ -85,6 +85,16 @@ namespace FluxifyAPI.Repository.Implementations
             await _context.SaveChangesAsync();
             return cartItems.Count;
         }
+
+        public Task<int> ClearCartItemsAsync(Guid tenantId, Guid customerId)
+        {
+            var cartItems = _context.CartItems
+                .Include(ci => ci.Cart)
+                .Where(ci => ci.Cart.CustomerId == customerId && ci.Cart.TenantId == tenantId);
+
+            _context.CartItems.RemoveRange(cartItems);
+            return _context.SaveChangesAsync();
+        }
     }
 }
 

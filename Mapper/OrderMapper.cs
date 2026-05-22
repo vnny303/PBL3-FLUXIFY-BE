@@ -38,9 +38,9 @@ namespace FluxifyAPI.Mapper
             var product = productSku?.Product;
             var productName = product?.Name ?? "Product";
             
-            var image = productSku != null && !string.IsNullOrWhiteSpace(productSku.imgUrl)
-                ? productSku.imgUrl
-                : product?.imgUrls?.FirstOrDefault();
+            var image = productSku != null && !string.IsNullOrWhiteSpace(productSku.ImgUrl)
+                ? productSku.ImgUrl
+                : product?.ImgUrls?.FirstOrDefault();
 
             return new OrderItemDto
             {

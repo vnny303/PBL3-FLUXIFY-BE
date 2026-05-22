@@ -1,3 +1,4 @@
+using FluxifyAPI.Data;
 using FluxifyAPI.DTOs.Tenant;
 using FluxifyAPI.Helpers;
 using FluxifyAPI.Repository.Interfaces;
@@ -11,6 +12,7 @@ namespace FluxifyAPI.Services.Implementations
 {
     public class TenantService : ITenantService
     {
+        private readonly AppDbContext _context;
         private readonly ITenantRepository _tenantRepository;
         private readonly ICategoryRepository _categoryRepository;
         private readonly IProductRepository _productRepository;
@@ -21,7 +23,8 @@ namespace FluxifyAPI.Services.Implementations
         private readonly IOrderRepository _orderRepository;
         private readonly IOrderItemRepository _orderItemRepository;
 
-        public TenantService(ITenantRepository tenantRepository,
+        public TenantService(AppDbContext context,
+                            ITenantRepository tenantRepository,
                             ICategoryRepository categoryRepository,
                             IProductRepository productRepository,
                             IProductSkuRepository productSkuRepository,
@@ -31,6 +34,7 @@ namespace FluxifyAPI.Services.Implementations
                             IOrderRepository orderRepository,
                             IOrderItemRepository orderItemRepository)
         {
+            _context = context;
             _tenantRepository = tenantRepository;
             _categoryRepository = categoryRepository;
             _productRepository = productRepository;
@@ -197,6 +201,9 @@ namespace FluxifyAPI.Services.Implementations
 
         public async Task<ServiceResult<StorefrontTenantLookupDto>> GetTenantBySubdomainAsync(string subdomain)
         {
+            if (string.IsNullOrWhiteSpace(subdomain))
+                return ServiceResult<StorefrontTenantLookupDto>.Fail(400, "Subdomain không hợp lệ");
+
             var tenant = await _tenantRepository.GetTenantBySubdomainAsync(subdomain);
             if (!await _tenantRepository.SubdomainExists(subdomain) || tenant == null)
                 return ServiceResult<StorefrontTenantLookupDto>.Fail(404, "Tenant không tồn tại");
@@ -293,28 +300,95 @@ namespace FluxifyAPI.Services.Implementations
                 return ServiceResult<object>.Fail(404, "Tenant không tồn tại");
             if (!await _tenantRepository.IsTenantOwner(id, ownerId))
                 return ServiceResult<object>.Forbidden("Bạn không có quyền xóa tenant này");
-            // Xóa tất cả dữ liệu liên quan đến tenant trước khi xóa tenant
-            foreach (var order in _orderRepository.GetOrdersByTenantQuery(id))
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+
+            // Thứ tự xóa phải đúng theo chiều FK Restrict:
+            // Reviews → CartItems → OrderItems → Orders → Carts → CustomerAddresses
+            // → Customers → ProductSkus → Products → Categories → Tenant
+
+            // 1. Xóa reviews (FK: ProductSku, Customer, Tenant đều Restrict)
+            var reviews = await _context.Reviews
+                .Where(r => r.TenantId == id)
+                .ToListAsync();
+            _context.Reviews.RemoveRange(reviews);
+            await _context.SaveChangesAsync();
+
+            // 2. Xóa cart items (FK: Cart Restrict, ProductSku Restrict)
+            var cartItems = await _context.CartItems
+                .Where(ci => ci.Cart.TenantId == id)
+                .ToListAsync();
+            _context.CartItems.RemoveRange(cartItems);
+            await _context.SaveChangesAsync();
+
+            // 3. Xóa order items (FK: Order Restrict, ProductSku Restrict)
+            var orderItems = await _context.OrderItems
+                .Where(oi => oi.Order.TenantId == id)
+                .ToListAsync();
+            _context.OrderItems.RemoveRange(orderItems);
+            await _context.SaveChangesAsync();
+
+            // 4. Xóa orders (FK: Customer Restrict, Tenant Restrict)
+            // Xóa orders trước CustomerAddresses vì Order.AddressId → CustomerAddress
+            var orders = await _context.Orders
+                .Where(o => o.TenantId == id)
+                .ToListAsync();
+            _context.Orders.RemoveRange(orders);
+            await _context.SaveChangesAsync();
+
+            // 5. Xóa carts (FK: Customer Restrict, Tenant Restrict)
+            var carts = await _context.Carts
+                .Where(c => c.TenantId == id)
+                .ToListAsync();
+            _context.Carts.RemoveRange(carts);
+            await _context.SaveChangesAsync();
+
+            // 6. Xóa customer addresses (FK: Customer Restrict, Tenant Restrict)
+            var addresses = await _context.CustomerAddresses
+                .Where(a => a.TenantId == id)
+                .ToListAsync();
+            _context.CustomerAddresses.RemoveRange(addresses);
+            await _context.SaveChangesAsync();
+
+            // 7. Xóa customers (FK: Tenant Restrict)
+            var customers = await _context.Customers
+                .Where(c => c.TenantId == id)
+                .ToListAsync();
+            _context.Customers.RemoveRange(customers);
+            await _context.SaveChangesAsync();
+
+            // 8. Xóa product SKUs (FK: Product Restrict)
+            var productIds = await _context.Products
+                .Where(p => p.TenantId == id)
+                .Select(p => p.Id)
+                .ToListAsync();
+            if (productIds.Count > 0)
             {
-                foreach (var orderItem in order.OrderItems)
-                    await _orderItemRepository.DeleteOrderItemAsync(id, orderItem.Id);
-                await _orderRepository.DeleteOrderAsync(id, order.Id);
+                var skus = await _context.ProductSkus
+                    .Where(ps => productIds.Contains(ps.ProductId))
+                    .ToListAsync();
+                _context.ProductSkus.RemoveRange(skus);
+                await _context.SaveChangesAsync();
             }
-            foreach (var customer in _customerRepository.GetCustomersByTenantQuery(id))
-            {
-                foreach (var cartItem in await _cartItemRepository.GetCartItemsAsync(id, customer.Id) ?? Enumerable.Empty<CartItem>())
-                    await _cartItemRepository.DeleteCartItemAsync(id, null, cartItem.Id);
-                await _customerRepository.DeleteCustomerAsync(id, customer.Id);
-            }
-            foreach (var product in _productRepository.GetProductsByTenant(id))
-            {
-                foreach (var productSku in product.ProductSkus)
-                    await _productSkuRepository.DeleteProductSkuAsync(id, productSku.Id);
-                await _productRepository.DeleteProductAsync(id, product.Id);
-            }
-            foreach (var category in _categoryRepository.GetCategoriesByTenantQuery(id))
-                await _categoryRepository.DeleteCategoryAsync(id, category.Id);
+
+            // 9. Xóa products (FK: Category Restrict, Tenant Restrict)
+            var products = await _context.Products
+                .Where(p => p.TenantId == id)
+                .ToListAsync();
+            _context.Products.RemoveRange(products);
+            await _context.SaveChangesAsync();
+
+            // 10. Xóa categories (FK: Tenant Restrict)
+            var categories = await _context.Categories
+                .Where(c => c.TenantId == id)
+                .ToListAsync();
+            _context.Categories.RemoveRange(categories);
+            await _context.SaveChangesAsync();
+
+            // 11. Xóa tenant
             await _tenantRepository.DeleteTenantAsync(id);
+            await transaction.CommitAsync();
+
             return ServiceResult<object>.Ok(new { message = "Xóa tenant thành công" });
         }
     }

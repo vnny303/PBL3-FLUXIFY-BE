@@ -103,6 +103,9 @@ namespace FluxifyAPI.Services.Implementations
             if (!await _platformUserRepository.PlatformUserEmailExists(request.Email) || user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user!.PasswordHash))
                 return ServiceResult<object>.Fail(401, "Email hoặc mật khẩu không đúng!");
 
+            if (user.IsActive == false)
+                return ServiceResult<object>.Fail(403, "Tài khoản đã bị vô hiệu hóa!");
+
             var claims = new List<Claim>
             {
                 new Claim("userId", user.Id.ToString()),
@@ -177,6 +180,9 @@ namespace FluxifyAPI.Services.Implementations
 
             if (!await _customerRepository.CustomerEmailExists(tenant.Id, request.Email) || customer == null || !BCrypt.Net.BCrypt.Verify(request.Password, customer.PasswordHash))
                 return ServiceResult<object>.Fail(401, "Email hoặc mật khẩu không đúng!");
+
+            if (customer.IsActive == false)
+                return ServiceResult<object>.Fail(403, "Tài khoản đã bị vô hiệu hóa!");
 
             var token = GenerateToken([
                 new Claim("userId", customer.Id.ToString()),

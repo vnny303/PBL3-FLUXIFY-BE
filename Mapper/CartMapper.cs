@@ -53,9 +53,9 @@ namespace FluxifyAPI.Mapper
                 ProductName = productName,
                 SkuAttributes = skuAttributes,
                 SkuDisplayName = skuDisplayName,
-                SkuImageUrl = !string.IsNullOrWhiteSpace(cartItem.ProductSku?.imgUrl)
-                    ? cartItem.ProductSku.imgUrl
-                    : cartItem.ProductSku?.Product?.imgUrls?.FirstOrDefault(),
+                SkuImageUrl = !string.IsNullOrWhiteSpace(cartItem.ProductSku?.ImgUrl)
+                    ? cartItem.ProductSku.ImgUrl
+                    : cartItem.ProductSku?.Product?.ImgUrls?.FirstOrDefault(),
                 UnitPrice = cartItem.ProductSku?.Price,
                 Quantity = cartItem.Quantity
             };

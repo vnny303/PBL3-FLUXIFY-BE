@@ -17,6 +17,6 @@ namespace FluxifyAPI.Repository.Interfaces
         Task<bool> TenantExists(Guid tenantId);
         Task<bool> SubdomainExists(string subdomain);
         Task<bool> IsTenantOwner(Guid tenantId, Guid platformUserId);
+        Task<bool> UserHasTenantsAsync(Guid platformUserId);
     }
 }
-

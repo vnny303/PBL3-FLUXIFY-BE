@@ -25,6 +25,7 @@ namespace FluxifyAPI.Repository.Implementations
 
         public async Task<Tenant?> GetTenantBySubdomainAsync(string subdomain)
         {
+            if (string.IsNullOrWhiteSpace(subdomain)) return null;
             return await _context.Tenants
                 .FirstOrDefaultAsync(t => t.Subdomain == subdomain.Trim().ToLowerInvariant());
         }
@@ -70,6 +71,7 @@ namespace FluxifyAPI.Repository.Implementations
 
         public async Task<bool> SubdomainExists(string subdomain)
         {
+            if (string.IsNullOrWhiteSpace(subdomain)) return false;
             return await _context.Tenants.AnyAsync(t => t.Subdomain == subdomain.Trim().ToLowerInvariant());
         }
 
@@ -77,7 +79,9 @@ namespace FluxifyAPI.Repository.Implementations
         {
             return await _context.Tenants.AnyAsync(t => t.Id == tenantId && t.OwnerId == platformUserId);
         }
+        public async Task<bool> UserHasTenantsAsync(Guid platformUserId)
+        {
+            return await _context.Tenants.AnyAsync(t => t.OwnerId == platformUserId);
+        }
     }
 }
-
-

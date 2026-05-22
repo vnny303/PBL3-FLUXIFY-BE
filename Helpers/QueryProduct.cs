@@ -32,7 +32,11 @@ namespace FluxifyAPI.Helpers
             get => _priceTo;
             set => _priceTo = value <= 0 ? null : value;
         }
+        [FromQuery(Name = "ratingFrom")]
+        public double? RatingFrom { get; set; }
 
+        [FromQuery(Name = "ratingTo")]
+        public double? RatingTo { get; set; }
     }
 }
 

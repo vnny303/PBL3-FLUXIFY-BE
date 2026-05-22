@@ -142,7 +142,15 @@ builder.Services.AddCors(options =>
             throw new InvalidOperationException("Cors:AllowedOrigins must be configured outside Development.");
         }
 
-        policy.WithOrigins(allowedOrigins)
+        policy.SetIsOriginAllowed(origin =>
+            {
+                if (Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                {
+                    var host = uri.Host;
+                    return host == "localhost" || host.EndsWith(".localhost") || allowedOrigins.Contains(origin);
+                }
+                return false;
+            })
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -162,7 +170,10 @@ if (app.Environment.IsDevelopment())
         .WithHttpBearerAuthentication(bearer => bearer.Token = ""));
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();

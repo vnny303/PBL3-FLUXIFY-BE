@@ -269,6 +269,13 @@ namespace FluxifyAPI.Services.Implementations
                 productQuery = productQuery.Where(p => p.ProductSkus.Any(sku => sku.Price >= query.PriceFrom.Value));
             if (query.PriceTo.HasValue)
                 productQuery = productQuery.Where(p => p.ProductSkus.Any(sku => sku.Price <= query.PriceTo.Value));
+            if (query.RatingFrom.HasValue)
+                productQuery = productQuery.Where(p =>
+                    p.ProductSkus.Any() && p.ProductSkus.Average(sku => sku.Reviews.Any() ? (double?)sku.Reviews.Average(r => (double?)r.Rating) : 0) >= query.RatingFrom.Value);
+            if (query.RatingTo.HasValue)
+                productQuery = productQuery.Where(p =>
+                    p.ProductSkus.Any() && p.ProductSkus.Average(sku => sku.Reviews.Any() ? (double?)sku.Reviews.Average(r => (double?)r.Rating) : 0) <= query.RatingTo.Value);
+
             var isDescending = string.Equals(query.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
             switch (query.SortBy)
             {

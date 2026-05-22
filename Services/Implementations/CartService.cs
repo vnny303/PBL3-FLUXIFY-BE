@@ -1,6 +1,5 @@
 using FluxifyAPI.DTOs.Cart;
 using FluxifyAPI.Mapper;
-using FluxifyAPI.Repository.Implementations;
 using FluxifyAPI.Repository.Interfaces;
 using FluxifyAPI.Services.Common;
 using FluxifyAPI.Services.Interfaces;
@@ -112,12 +111,10 @@ namespace FluxifyAPI.Services.Implementations
         {
             if (!await _customerRepository.CustomerExists(tenantId, customerId))
                 return ServiceResult<object>.Fail(404, "Không tìm thấy khách hàng!");
-            var items = (await _cartItemRepository.GetCartItemsAsync(tenantId, customerId))?.ToList() ?? [];
-            if (!items.Any())
+            var itemsCount = await _cartItemRepository.ClearCartItemsAsync(tenantId, customerId);
+            if (itemsCount == 0)
                 return ServiceResult<object>.Ok(new { message = "Giỏ hàng đã trống!" });
-            foreach (var item in items)
-                await _cartItemRepository.DeleteCartItemAsync(tenantId, customerId, item.Id);
-            return ServiceResult<object>.Ok(new { message = $"Đã xóa {items.Count} item khỏi giỏ hàng!" });
+            return ServiceResult<object>.Ok(new { message = $"Đã xóa {itemsCount} item khỏi giỏ hàng!" });
         }
     }
 }

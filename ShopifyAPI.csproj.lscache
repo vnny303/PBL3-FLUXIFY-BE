@@ -77,7 +77,7 @@ DTOs/Cart/
  CreateCartItemRequestDto.cs
  CreateCartRequestDto.cs
  UpdateCartItemRequestDto.cs
-DTOs/Cartegory/
+DTOs/Category/
  CategoryDto.cs
  CreateCategoryRequestDto.cs
  UpdateCategoryRequestDto.cs
