@@ -6,6 +6,9 @@ namespace FluxifyAPI.Helpers
     {
         [FromQuery(Name = "categoryId")]
         public Guid? CategoryId { get; set; }
+
+        [FromQuery(Name = "categoryIds")]
+        public string? CategoryIds { get; set; }
         private string? _name;
         [FromQuery(Name = "name")]
         public string? Name

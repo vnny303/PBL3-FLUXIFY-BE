@@ -6,7 +6,7 @@ namespace FluxifyAPI.Helpers
     public class QueryBase
     {
         private int _page = 1;
-        private int _pageSize = 10;
+        private int _pageSize = 400;
         private string? _sortBy;
         private string? _sortDirection;
         private string? _searchTerm;
@@ -20,11 +20,11 @@ namespace FluxifyAPI.Helpers
         }
 
         [FromQuery(Name = "pageSize")]
-        [Range(1, 100)]
+        [Range(1, 400)]
         public int PageSize
         {
             get => _pageSize;
-            set => _pageSize = value <= 0 ? 10 : (value > 100 ? 100 : value);
+            set => _pageSize = value <= 0 ? 10 : (value > 400 ? 400 : value);
         }
 
         [FromQuery(Name = "sortBy")]

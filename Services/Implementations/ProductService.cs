@@ -254,7 +254,22 @@ namespace FluxifyAPI.Services.Implementations
             if (!string.IsNullOrWhiteSpace(query.Name))
                 productQuery = productQuery.Where(p => p.Name.Contains(query.Name.Trim()));
             if (query.CategoryId.HasValue)
+            {
                 productQuery = productQuery.Where(p => p.CategoryId == query.CategoryId.Value);
+            }
+            else if (!string.IsNullOrWhiteSpace(query.CategoryIds))
+            {
+                var categoryGuids = query.CategoryIds
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(s => Guid.TryParse(s.Trim(), out var g) ? g : Guid.Empty)
+                    .Where(g => g != Guid.Empty)
+                    .ToList();
+
+                if (categoryGuids.Any())
+                {
+                    productQuery = productQuery.Where(p => categoryGuids.Contains(p.CategoryId));
+                }
+            }
             if (query.HasAttributes.HasValue)
                 productQuery = query.HasAttributes.Value
                     ? productQuery.Where(p => !string.IsNullOrEmpty(p.AttributesJson))
